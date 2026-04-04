@@ -9,6 +9,7 @@ import { log } from '../logger.js';
 import { coerceCoordinates } from './coordinate-utils.js';
 
 type FaceDirection = 'up' | 'down' | 'north' | 'south' | 'east' | 'west';
+const MAX_FIND_BLOCKS_COUNT = 256;
 
 interface FaceOption {
   direction: string;
@@ -29,7 +30,14 @@ export function registerBlockTools(factory: ToolFactory, getBot: () => mineflaye
       ({ x, y, z } = coerceCoordinates(x, y, z));
 
       const bot = getBot();
-      const placePos = new Vec3(x, y, z);
+      const placePos = new Vec3(x, y, z).floored();
+      ({ x, y, z } = placePos);
+
+      const botPos = bot.entity.position.floored();
+      if (placePos.equals(botPos) || placePos.equals(botPos.offset(0, 1, 0))) {
+        return factory.createResponse(`You can't place a block where you're standing or one block above`);
+      }
+
       const blockAtPos = bot.blockAt(placePos);
 
       if (blockAtPos && blockAtPos.name !== 'air') {
@@ -131,16 +139,18 @@ export function registerBlockTools(factory: ToolFactory, getBot: () => mineflaye
   );
 
   factory.registerTool(
-    "find-block",
-    "Find the nearest block of a specific type",
+    "find-blocks",
+    "Find one or more nearby blocks of a specific type",
     {
       blockType: z.string().describe("Type of block to find"),
-      maxDistance: z.coerce.number().finite().optional().describe("Maximum search distance (default: 16)")
+      maxDistance: z.coerce.number().finite().optional().describe("Maximum search distance (default: 16)"),
+      count: z.coerce.number().int().positive().optional().describe("Maximum number of blocks to return (default: 1; values above 256 are clamped)")
     },
-    async ({ blockType, maxDistance = 16 }) => {
+    async ({ blockType, maxDistance = 16, count = 1 }) => {
       const bot = getBot();
       const mcData = minecraftData(bot.version);
       const blocksByName = mcData.blocksByName;
+      const normalizedCount = Math.min(count, MAX_FIND_BLOCKS_COUNT);
 
       if (!blocksByName[blockType]) {
         return factory.createResponse(`Unknown block type: ${blockType}`);
@@ -148,16 +158,35 @@ export function registerBlockTools(factory: ToolFactory, getBot: () => mineflaye
 
       const blockId = blocksByName[blockType].id;
 
-      const block = bot.findBlock({
+      if (normalizedCount === 1) {
+        const block = bot.findBlock({
+          matching: blockId,
+          maxDistance: maxDistance
+        });
+
+        if (!block) {
+          return factory.createResponse(`No ${blockType} found within ${maxDistance} blocks`);
+        }
+
+        return factory.createResponse(`Found ${blockType} at position (${block.position.x}, ${block.position.y}, ${block.position.z})`);
+      }
+
+      const blocks = bot.findBlocks({
+        point: bot.entity.position,
         matching: blockId,
-        maxDistance: maxDistance
+        maxDistance: maxDistance,
+        count: normalizedCount
       });
 
-      if (!block) {
+      if (blocks.length === 0) {
         return factory.createResponse(`No ${blockType} found within ${maxDistance} blocks`);
       }
 
-      return factory.createResponse(`Found ${blockType} at position (${block.position.x}, ${block.position.y}, ${block.position.z})`);
+      const blocksList = blocks
+        .map((block, i) => `${i + 1}. (${block.x}, ${block.y}, ${block.z})`)
+        .join('\n');
+
+      return factory.createResponse(`Found ${blocks.length} ${blockType} block(s) within ${maxDistance} blocks:\n${blocksList}`);
     }
   );
 }
