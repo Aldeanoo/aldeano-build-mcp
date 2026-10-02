@@ -1,9 +1,18 @@
 import { z } from "zod";
-import mineflayer from 'mineflayer';
 import { ToolFactory } from '../tool-factory.js';
 import { MessageStore } from '../message-store.js';
+import { ChatService } from '../services/chat-service.js';
+import type { BotOrGetter } from '../services/types.js';
 
-export function registerChatTools(factory: ToolFactory, getBot: () => mineflayer.Bot, messageStore: MessageStore): void {
+export function registerChatTools(
+  factory: ToolFactory,
+  botOrService: BotOrGetter | ChatService,
+  messageStore?: MessageStore
+): void {
+  const chatService = botOrService instanceof ChatService
+    ? botOrService
+    : new ChatService(botOrService, messageStore);
+
   factory.registerTool(
     "send-chat",
     "Send a chat message in-game",
@@ -11,9 +20,8 @@ export function registerChatTools(factory: ToolFactory, getBot: () => mineflayer
       message: z.string().describe("Message to send in chat")
     },
     async ({ message }) => {
-      const bot = getBot();
-      bot.chat(message);
-      return factory.createResponse(`Sent message: "${message}"`);
+      const result = chatService.sendChat(message);
+      return factory.createResponse(result.message ?? '');
     }
   );
 
@@ -24,8 +32,7 @@ export function registerChatTools(factory: ToolFactory, getBot: () => mineflayer
       count: z.number().optional().describe("Number of recent messages to retrieve (default: 10, max: 100)")
     },
     async ({ count = 10 }) => {
-      const maxCount = Math.min(count, messageStore.getMaxMessages());
-      const messages = messageStore.getRecentMessages(maxCount);
+      const messages = chatService.readChat(count);
 
       if (messages.length === 0) {
         return factory.createResponse("No chat messages found");
@@ -34,7 +41,7 @@ export function registerChatTools(factory: ToolFactory, getBot: () => mineflayer
       let output = `Found ${messages.length} chat message(s):\n\n`;
       messages.forEach((msg, index) => {
         const timestamp = new Date(msg.timestamp).toISOString();
-        output += `${index + 1}. ${timestamp} - ${msg.username}: ${msg.content}\n`;
+        output += `${index + 1}. ${timestamp} - ${msg.username}: ${msg.message}\n`;
       });
 
       return factory.createResponse(output);

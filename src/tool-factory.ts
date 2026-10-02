@@ -42,9 +42,9 @@ export class ToolFactory {
     });
   }
 
-  createResponse(text: string): McpResponse {
+  createResponse(text: string = ''): McpResponse {
     return {
-      content: [{ type: "text", text }]
+      content: [{ type: "text", text: text ?? '' }]
     };
   }
 

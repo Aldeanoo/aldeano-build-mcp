@@ -1,48 +1,137 @@
-# Minecraft MCP Server
+# Aldeano Build MCP
 
-<a href="https://github.com/yuniko-software/minecraft-mcp-server/actions">
-  <img alt="CI" src="https://github.com/yuniko-software/minecraft-mcp-server/actions/workflows/build.yml/badge.svg">
-</a>
-<a href="https://github.com/yuniko-software">
-  <img alt="Contribution Welcome" src="https://img.shields.io/badge/Contribution-Welcome-blue">
-</a>
-<a href="https://github.com/yuniko-software/minecraft-mcp-server/releases/latest">
-  <img alt="Latest Release" src="https://img.shields.io/github/v/release/yuniko-software/minecraft-mcp-server?label=Latest%20Release">
-</a>
+[![CI](https://github.com/Aldeano-Build/aldeano-build-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Aldeano-Build/aldeano-build-mcp/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D20.10.0-brightgreen.svg)](https://nodejs.org/)
+[![MCP Spec](https://img.shields.io/badge/MCP-1.27.1-purple.svg)](https://modelcontextprotocol.io/)
 
-<img width="2063" height="757" alt="image" src="https://github.com/user-attachments/assets/3f0f0438-f079-4226-90bd-87b9e1311d19" />
+An extensible, provider-neutral **Model Context Protocol (MCP)** server and high-level automation framework that enables AI agents to perceive, navigate, interact with, and build inside Minecraft.
 
-___
+---
 
-> [!IMPORTANT]
-> Currently supports Minecraft version 1.21.11. Newer versions may not work with this MCP server, but we will add support as soon as possible.
+## Origin & Attribution
 
-https://github.com/user-attachments/assets/6f17f329-3991-4bc7-badd-7cde9aacb92f
+> [!NOTE]
+> **Aldeano Build MCP is based on [yuniko-software/minecraft-mcp-server](https://github.com/yuniko-software/minecraft-mcp-server).**
+> The project has been extended and redesigned for high-level Minecraft automation and AI agent workflows, introducing a decoupled Services layer, dual-mode execution (MCP Server + Dev Shell), diagnostic tooling, typed error domains, and robust unit & integration test coverage.
 
-A Minecraft bot powered by large language models and [Mineflayer API](https://github.com/PrismarineJS/mineflayer). This bot uses the [Model Context Protocol](https://github.com/modelcontextprotocol) (MCP) to enable Claude and other supported models to control a Minecraft character.
+---
 
-<a href="https://glama.ai/mcp/servers/@yuniko-software/minecraft-mcp-server">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@yuniko-software/minecraft-mcp-server/badge" alt="mcp-minecraft MCP server" />
-</a>
+## Project Philosophy
 
-## Prerequisites
+> **"LLM ≠ Minecraft implementation"**
 
-- Git
-- Node.js (>= 20.10.0)
-- A running Minecraft game (the setup below was tested with Minecraft 1.21.8 Java Edition included in Microsoft Game Pass)
-- An MCP-compatible client. Claude Desktop will be used as an example, but other MCP clients are also supported
+Large Language Models (LLMs) excel at spatial reasoning, planning, goal decomposition, and conversational reasoning. However, game execution requires rock-solid pathfinding, voxel physics, block collision detection, inventory graph logic, and protocol synchronization.
 
-## Getting started
+Aldeano Build MCP adheres to a strict **provider-neutral design**:
+- Works identically with **Claude** (`ClaudeBot`), **Gemini** (`GeminiBot`), **MiniMax** (`MiniMaxBot`), **ChatGPT** (`ChatGPTBot`), or local dev sessions (`TestBot`, `MCPBot`).
+- Separates MCP protocol adapters from the **Services Layer**, meaning all capabilities can be invoked by LLMs via stdio JSON-RPC, executed in an interactive REPL terminal, or scripted programmatically in TypeScript.
 
-This bot is designed to be used with Claude Desktop through the Model Context Protocol (MCP).
+---
 
-### Run Minecraft
+## Table of Contents
 
-Create a singleplayer world and open it to LAN (`ESC -> Open to LAN`). Bot will try to connect using port `25565` and hostname `localhost`. These parameters could be configured in `claude_desktop_config.json` on a next step. 
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Development & Dev Shell](#development--dev-shell)
+- [Minecraft Setup](#minecraft-setup)
+- [MCP Setup](#mcp-setup)
+- [Command Line Options](#command-line-options)
+- [Available Tools](#available-tools)
+- [Tool Namespacing Convention](#tool-namespacing-convention)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Credits](#credits)
+- [License](#license)
 
-### MCP Configuration
+---
 
-Make sure that [Claude Desktop](https://claude.ai/download) is installed. Open `File -> Settings -> Developer -> Edit Config`. It should open installation directory. Find file with a name `claude_desktop_config.json` and insert the following code:
+## Overview
+
+Aldeano Build MCP provides:
+- **Perception**: Spatial coordinate tracking, surrounding block inspection, nearby entity detection, and player chat monitoring.
+- **Locomotion**: Intelligent 3D pathfinding with obstacle avoidance, flight capabilities (creative mode), direction pulses, and discrete jumping.
+- **Manipulation**: Block placement with collision detection, voxel excavation, block type searches, inventory equipping, and crafting.
+- **Dual Execution**: Seamless switching between **MCP Server Mode** (for AI hosts) and **Dev Shell Mode** (interactive REPL for developers).
+- **Diagnostics**: Built-in environment and port health checker (`npm run doctor`).
+
+---
+
+## Quick Start
+
+Launch a local server and have a bot running in Minecraft in just **4 commands**:
+
+```bash
+git clone https://github.com/Aldeano-Build/aldeano-build-mcp.git && cd aldeano-build-mcp
+npm install
+npm run mc:setup
+npm run mc:start && npm run dev:shell -- --username TestBot
+```
+
+*(Note: Run `npm run mc:start` and `npm run dev:shell` in separate terminal windows, or run `npm run dev:all` to start both concurrently).*
+
+---
+
+## Development & Dev Shell
+
+Aldeano Build MCP includes an interactive developer shell that lets you inspect and command the bot directly without requiring an LLM client:
+
+```bash
+# Run the interactive REPL shell
+npm run dev:shell -- --username TestBot
+
+# Run system health diagnostics
+npm run doctor
+
+# Reset local test world data
+npm run mc:reset
+```
+
+### Dev Shell Commands:
+- `pos`: Print the bot's current 3D coordinates.
+- `move <x> <y> <z>`: Pathfind to specified coordinates.
+- `look <x> <y> <z>`: Orient bot head towards a location.
+- `jump`: Trigger a jump.
+- `block <x> <y> <z>`: Inspect the block at coordinates.
+- `dig <x> <y> <z>`: Break block at coordinates.
+- `chat <message>`: Send a message in-game.
+- `inv`: List current inventory items and slots.
+- `quit` / `exit`: Disconnect the bot.
+
+---
+
+## Minecraft Setup
+
+### Option 1: Automatic Local Server (Recommended for Testing)
+Use the included automated setup script (requires Java 17 or 21):
+```bash
+# Downloads official server jar, accepts EULA, and configures offline localhost server
+npm run mc:setup
+
+# Start the server (runs on 127.0.0.1:25565)
+npm run mc:start
+```
+
+### Option 2: Singleplayer LAN Game
+1. Launch Minecraft (Java Edition 1.20 - 1.21+).
+2. Create or load a world (Creative mode with cheats enabled is recommended).
+3. Press `ESC` -> **Open to LAN**.
+4. Set **Allow Cheats: ON**, port to `25565`, and click **Start LAN World**.
+
+---
+
+## MCP Setup
+
+To connect Aldeano Build MCP to an AI host (like Claude Desktop, Cursor, Continue, or LibreChat):
+
+### Claude Desktop Configuration
+Open your Claude Desktop config file:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+Add the server entry:
 
 ```json
 {
@@ -51,9 +140,9 @@ Make sure that [Claude Desktop](https://claude.ai/download) is installed. Open `
       "command": "npx",
       "args": [
         "-y",
-        "github:yuniko-software/minecraft-mcp-server",
+        "aldeano-build-mcp",
         "--host",
-        "localhost",
+        "127.0.0.1",
         "--port",
         "25565",
         "--username",
@@ -64,70 +153,161 @@ Make sure that [Claude Desktop](https://claude.ai/download) is installed. Open `
 }
 ```
 
-Double-check that right `--port` and `--host` parameters were used. Make sure to completely reboot the Claude Desktop application (should be closed in OS tray). 
-
-## Running
-
-Make sure Minecraft game is running and the world is opened to LAN. Then start Claude Desktop application and the bot should join the game. 
-
-**It could take some time for Claude Desktop to boot the MCP server**. The marker that the server has booted successfully:
-
-<img width="885" height="670" alt="image" src="https://github.com/user-attachments/assets/ccbb42f8-6544-462c-8ac1-8af13ddfcddd" />
-
-You can give bot any commands through any active Claude Desktop chat. You can also upload images of buildings and ask bot to build them 😁
-
-Don't forget to mention that bot should do something in Minecraft in your prompt. Because saying this is a trigger to run MCP server. It will ask for your permissions.
-
-Using Claude Sonnet could give you some interesting results. The bot-agent would be really smart 🫡
-
-Example usage: [shared Claude chat](https://claude.ai/share/535d5f69-f102-4cdb-9801-f74ea5709c0b)
-
-## Available Commands
-
-Once connected to a Minecraft server, Claude can use these commands:
-
-### Movement
-- `get-position` - Get the current position of the bot
-- `move-to-position` - Move to specific coordinates
-- `look-at` - Make the bot look at specific coordinates
-- `jump` - Make the bot jump
-- `move-in-direction` - Move in a specific direction for a duration
-
-### Flight
-- `fly-to` - Make the bot fly directly to specific coordinates
-
-### Inventory
-- `list-inventory` - List all items in the bot's inventory
-- `find-item` - Find a specific item in inventory
-- `equip-item` - Equip a specific item
-
-### Block Interaction
-- `place-block` - Place a block at specified coordinates
-- `dig-block` - Dig a block at specified coordinates
-- `get-block-info` - Get information about a block
-- `find-blocks` - Find one or more nearby blocks of a specific type
-
-### Furnace
-- `smelt-item` - Smelt items using a furnace-like block
-
-### Entity Interaction
-- `find-entity` - Find the nearest entity of a specific type
-
-### Communication
-- `send-chat` - Send a chat message in-game
-- `read-chat` - Get recent chat messages from players
-
-### Game State
-- `detect-gamemode` - Detect the gamemode on game
-
-## Contributing
-
-Feel free to submit pull requests or open issues for improvements. All refactoring commits, functional and test contributions, issues and discussion are greatly appreciated!
-
-To get started with contributing, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+Restart Claude Desktop completely from your system tray/dock. Once started, Claude will display available Minecraft tools!
 
 ---
 
-⭐ If you find this project useful, please consider giving it a star on GitHub! ⭐
+## Command Line Options
 
-Your support helps make this project more visible to other people who might benefit from it.
+Aldeano Build MCP supports flexible CLI flags and environment variables. Precedence is:
+`CLI Arguments > Environment Variables > Defaults`
+
+| CLI Option | Env Variable | Default | Description |
+|------------|--------------|---------|-------------|
+| `--host <string>` | `MC_HOST` / `MINECRAFT_HOST` | `127.0.0.1` | Minecraft server hostname or IP address |
+| `--port <number>` | `MC_PORT` / `MINECRAFT_PORT` | `25565` | Minecraft server port |
+| `--username <string>` | `MC_USERNAME` / `MINECRAFT_USERNAME` | `LLMBot` | In-game player username for the bot |
+| `--version <string>` | `MC_VERSION` / `MINECRAFT_VERSION` | `1.20.4` | Minecraft game/protocol version |
+| `--auth <string>` | `MC_AUTH` / `MINECRAFT_AUTH` | `offline` | Authentication mode (`offline` or `microsoft`) |
+| `--connect-timeout <ms>` | `MC_CONNECT_TIMEOUT` | `30000` | Connection handshake timeout in milliseconds |
+| `--reconnect / --no-reconnect` | `MC_RECONNECT` | `true` | Automatically reconnect upon server disconnection |
+| `--log-level <string>` | `LOG_LEVEL` / `MC_LOG_LEVEL` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
+
+---
+
+## Available Tools
+
+Once connected, your AI agent has access to these core tools:
+
+### Movement & Locomotion
+- `get-position`: Get the current `(x, y, z)` position of the bot.
+- `move-to-position`: Pathfind to target coordinates with optional range and timeout.
+- `look-at`: Make the bot face specific 3D coordinates.
+- `jump`: Trigger a jump action.
+- `move-in-direction`: Move forward, backward, left, or right for a duration in milliseconds.
+
+### Flight (Creative Mode)
+- `fly-to`: Fly directly through 3D space to destination coordinates.
+
+### Voxel & World Manipulation
+- `get-block-info`: Inspect block name, ID, and metadata at given coordinates.
+- `find-blocks`: Locate the nearest blocks of a specific type (e.g. `diamond_ore`, `oak_log`).
+- `place-block`: Place a block against a target face with self-placement collision prevention.
+- `dig-block`: Break/mine a target block with automatic pathfinding into range.
+
+### Inventory & Items
+- `list-inventory`: List all items, quantities, and inventory slots.
+- `equip-item`: Equip an item from inventory to the bot's hand or armor slot.
+
+### Crafting & Smelting
+- `can-craft`: Check if required ingredients and recipes are available.
+- `get-recipe`: Retrieve ingredient details for a craftable item.
+- `list-recipes`: List all recipes known to the bot.
+- `craft-item`: Automatically craft an item using inventory resources.
+- `smelt-item`: Smelt ores or food using a nearby furnace.
+
+### Communication & Perception
+- `send-chat`: Send a chat message into the game.
+- `read-chat`: Read recent messages sent by other players in the world.
+- `find-entity`: Locate the nearest mob, animal, or player by entity type.
+- `detect-gamemode`: Detect current game mode (`survival`, `creative`, `adventure`, `spectator`).
+
+---
+
+## Tool Namespacing Convention
+
+To support the rapid expansion of high-level construction capabilities, future tools are organized under clear functional namespaces:
+
+- **`movement.*`**: Locomotion, waypoints, pathfinding controls (`movement.moveTo`, `movement.jump`).
+- **`blocks.*`**: Block inspection, raycasts, single-voxel actions (`blocks.info`, `blocks.place`).
+- **`inventory.*`**: Equipment, hotbar selection, storage queries (`inventory.list`, `inventory.equip`).
+- **`world.*`**: Biome info, time of day, weather, entity tracking (`world.entities`, `world.scan`).
+- **`build.*`**: High-level structural construction, blueprint layout, schematics (`build.wall`, `build.schematic`).
+- **`system.*`**: Health, runtime diagnostics, reconnect status (`system.status`, `system.reconnect`).
+
+---
+
+## Architecture
+
+Aldeano Build MCP is built on a clean, layered architecture:
+
+```
+┌────────────────────────────────────────────────────────┐
+│               AI Host / Dev Shell / Tests              │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│      Transport Layer (MCP JSON-RPC / CLI REPL)         │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│       Services Layer (Movement, Blocks, Inventory...)  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│      Runtime & Session Layer (Mineflayer + Pathfinder)  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                   Minecraft Server                     │
+└────────────────────────────────────────────────────────┘
+```
+
+For complete architectural details, lifecycle diagrams, and security models, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+---
+
+## Testing
+
+We enforce rigorous test coverage separated into unit and integration suites:
+
+```bash
+# Run unit tests (fast, mock-based, offline)
+npm test
+
+# Run integration tests (offline-safe)
+npm run test:integration
+
+# Run live Minecraft smoke test (connects, moves, places, destroys, disconnects)
+npm run test:minecraft
+
+# Run linting
+npm run lint
+
+# Build TypeScript to dist/
+npm run build
+```
+
+---
+
+## Roadmap
+
+- [x] Decoupled domain Services layer.
+- [x] Dual-mode runtime (MCP Server + Dev Shell).
+- [x] Automated local server setup and world reset scripts.
+- [x] Typed error domain hierarchy.
+- [x] 200+ unit and integration test suite with CI workflow.
+- [ ] Schematic and blueprint layout engine (`build.*`).
+- [ ] Multi-bot worker coordination.
+- [ ] Visual spatial map rasterization for multi-modal VLM agents.
+
+---
+
+## Contributing
+
+We welcome contributions from the community! Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** for our branching strategy (`develop`, `feature/*`, `fix/*`), PR guidelines, and coding standards.
+
+---
+
+## Credits
+
+- **[yuniko-software/minecraft-mcp-server](https://github.com/yuniko-software/minecraft-mcp-server)**: The original foundation for Minecraft MCP server interaction.
+- **[Mineflayer](https://github.com/PrismarineJS/mineflayer)**: Powerful JavaScript API for Minecraft bots.
+- **[mineflayer-pathfinder](https://github.com/PrismarineJS/mineflayer-pathfinder)**: 3D pathfinding engine for Mineflayer.
+- **[Model Context Protocol](https://modelcontextprotocol.io/)**: The open standard for connecting AI models to tools and data sources.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
