@@ -1,14 +1,22 @@
-import mineflayer from 'mineflayer';
 import { ToolFactory } from '../tool-factory.js';
+import { GameStateService } from '../services/game-state-service.js';
+import type { BotOrGetter } from '../services/types.js';
 
-export function registerGameStateTools(factory: ToolFactory, getBot: () => mineflayer.Bot): void {
+export function registerGameStateTools(
+  factory: ToolFactory,
+  botOrService: BotOrGetter | GameStateService
+): void {
+  const gameStateService = botOrService instanceof GameStateService
+    ? botOrService
+    : new GameStateService(botOrService);
+
   factory.registerTool(
     "detect-gamemode",
     "Detect the gamemode on game",
     {},
     async () => {
-      const bot = getBot();
-      return factory.createResponse(`Bot gamemode: "${bot.game.gameMode}"`);
+      const result = gameStateService.detectGamemode();
+      return factory.createResponse(result.message);
     }
   );
 }

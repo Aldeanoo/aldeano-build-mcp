@@ -1,38 +1,18 @@
 import { z } from "zod";
-import mineflayer from 'mineflayer';
-import { Vec3 } from 'vec3';
 import { ToolFactory } from '../tool-factory.js';
 import { coerceCoordinates } from './coordinate-utils.js';
+import { MovementService } from '../services/movement-service.js';
+import { MovementError } from '../errors/index.js';
+import type { BotOrGetter } from '../services/types.js';
 
-function createCancellableFlightOperation(
-  bot: mineflayer.Bot,
-  destination: Vec3,
-  controller: AbortController
-): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    let aborted = false;
+export function registerFlightTools(
+  factory: ToolFactory,
+  botOrService: BotOrGetter | MovementService
+): void {
+  const movementService = botOrService instanceof MovementService
+    ? botOrService
+    : new MovementService(botOrService);
 
-    controller.signal.addEventListener('abort', () => {
-      aborted = true;
-      bot.creative.stopFlying();
-      reject(new Error("Flight operation cancelled"));
-    });
-
-    bot.creative.flyTo(destination)
-      .then(() => {
-        if (!aborted) {
-          resolve(true);
-        }
-      })
-      .catch((err: Error) => {
-        if (!aborted) {
-          reject(err);
-        }
-      });
-  });
-}
-
-export function registerFlightTools(factory: ToolFactory, getBot: () => mineflayer.Bot): void {
   factory.registerTool(
     "fly-to",
     "Make the bot fly to a specific position",
@@ -44,37 +24,14 @@ export function registerFlightTools(factory: ToolFactory, getBot: () => mineflay
     async ({ x, y, z }) => {
       ({ x, y, z } = coerceCoordinates(x, y, z));
 
-      const bot = getBot();
-
-      if (!bot.creative) {
-        return factory.createResponse("Creative mode is not available. Cannot fly.");
-      }
-
-      const controller = new AbortController();
-      const FLIGHT_TIMEOUT_MS = 20000;
-
-      const timeoutId = setTimeout(() => {
-        if (!controller.signal.aborted) {
-          controller.abort();
-        }
-      }, FLIGHT_TIMEOUT_MS);
-
       try {
-        const destination = new Vec3(x, y, z);
-        await createCancellableFlightOperation(bot, destination, controller);
-        return factory.createResponse(`Successfully flew to position (${x}, ${y}, ${z}).`);
+        const result = await movementService.flyTo(x, y, z);
+        return factory.createResponse(result.message ?? '');
       } catch (error) {
-        if (controller.signal.aborted) {
-          const currentPosAfterTimeout = bot.entity.position;
-          return factory.createErrorResponse(
-            `Flight timed out after ${FLIGHT_TIMEOUT_MS / 1000} seconds. The destination may be unreachable. ` +
-            `Current position: (${Math.floor(currentPosAfterTimeout.x)}, ${Math.floor(currentPosAfterTimeout.y)}, ${Math.floor(currentPosAfterTimeout.z)})`
-          );
+        if (error instanceof MovementError && error.message.includes("Creative mode is not available")) {
+          return factory.createResponse(error.message);
         }
-        throw error;
-      } finally {
-        clearTimeout(timeoutId);
-        bot.creative.stopFlying();
+        return factory.createErrorResponse(error as Error);
       }
     }
   );

@@ -1,8 +1,10 @@
-interface StoredMessage {
+export interface StoredMessage {
   timestamp: number;
   username: string;
   content: string;
 }
+
+export type ChatMessage = StoredMessage;
 
 const MAX_STORED_MESSAGES = 100;
 

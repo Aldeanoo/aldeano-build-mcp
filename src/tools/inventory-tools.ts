@@ -1,37 +1,24 @@
 import { z } from "zod";
-import mineflayer from 'mineflayer';
 import { ToolFactory } from '../tool-factory.js';
+import { InventoryService } from '../services/inventory-service.js';
+import { InventoryError } from '../errors/index.js';
+import type { BotOrGetter } from '../services/types.js';
 
-interface InventoryItem {
-  name: string;
-  count: number;
-  slot: number;
-}
+export function registerInventoryTools(
+  factory: ToolFactory,
+  botOrService: BotOrGetter | InventoryService
+): void {
+  const inventoryService = botOrService instanceof InventoryService
+    ? botOrService
+    : new InventoryService(botOrService);
 
-export function registerInventoryTools(factory: ToolFactory, getBot: () => mineflayer.Bot): void {
   factory.registerTool(
     "list-inventory",
     "List all items in the bot's inventory",
     {},
     async () => {
-      const bot = getBot();
-      const items = bot.inventory.items();
-      const itemList: InventoryItem[] = items.map((item) => ({
-        name: item.name,
-        count: item.count,
-        slot: item.slot
-      }));
-
-      if (items.length === 0) {
-        return factory.createResponse("Inventory is empty");
-      }
-
-      let inventoryText = `Found ${items.length} items in inventory:\n\n`;
-      itemList.forEach(item => {
-        inventoryText += `- ${item.name} (x${item.count}) in slot ${item.slot}\n`;
-      });
-
-      return factory.createResponse(inventoryText);
+      const result = inventoryService.listInventory();
+      return factory.createResponse(result.message ?? '');
     }
   );
 
@@ -42,17 +29,11 @@ export function registerInventoryTools(factory: ToolFactory, getBot: () => minef
       nameOrType: z.string().describe("Name or type of item to find")
     },
     async ({ nameOrType }) => {
-      const bot = getBot();
-      const items = bot.inventory.items();
-      const item = items.find((item) =>
-        item.name.includes(nameOrType.toLowerCase())
-      );
-
-      if (item) {
-        return factory.createResponse(`Found ${item.count} ${item.name} in inventory (slot ${item.slot})`);
-      } else {
-        return factory.createResponse(`Couldn't find any item matching '${nameOrType}' in inventory`);
+      const result = inventoryService.findItem(nameOrType);
+      if (result) {
+        return factory.createResponse(result.message ?? '');
       }
+      return factory.createResponse(`Couldn't find any item matching '${nameOrType}' in inventory`);
     }
   );
 
@@ -64,18 +45,15 @@ export function registerInventoryTools(factory: ToolFactory, getBot: () => minef
       destination: z.string().optional().describe("Where to equip the item (default: 'hand')")
     },
     async ({ itemName, destination = 'hand' }) => {
-      const bot = getBot();
-      const items = bot.inventory.items();
-      const item = items.find((item) =>
-        item.name.includes(itemName.toLowerCase())
-      );
-
-      if (!item) {
-        return factory.createResponse(`Couldn't find any item matching '${itemName}' in inventory`);
+      try {
+        const result = await inventoryService.equipItem(itemName, destination);
+        return factory.createResponse(result.message ?? '');
+      } catch (error) {
+        if (error instanceof InventoryError) {
+          return factory.createResponse(`Couldn't find any item matching '${itemName}' in inventory`);
+        }
+        throw error;
       }
-
-      await bot.equip(item, destination as mineflayer.EquipmentDestination);
-      return factory.createResponse(`Equipped ${item.name} to ${destination}`);
     }
   );
 }

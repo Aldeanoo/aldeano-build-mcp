@@ -1,30 +1,17 @@
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import { loadConfig, type AldeanoConfig } from './config/index.js';
+
+export * from './config/index.js';
 
 export interface ServerConfig {
   host: string;
   port: number;
   username: string;
+  [key: string]: unknown;
 }
 
-export function parseConfig(): ServerConfig {
-  return yargs(hideBin(process.argv))
-    .option('host', {
-      type: 'string',
-      description: 'Minecraft server host',
-      default: 'localhost'
-    })
-    .option('port', {
-      type: 'number',
-      description: 'Minecraft server port',
-      default: 25565
-    })
-    .option('username', {
-      type: 'string',
-      description: 'Bot username',
-      default: 'LLMBot'
-    })
-    .help()
-    .alias('help', 'h')
-    .parseSync();
+/**
+ * Backward compatibility wrapper delegating to loadConfig()
+ */
+export function parseConfig(cliArgs?: string[]): ServerConfig & AldeanoConfig {
+  return loadConfig(cliArgs);
 }

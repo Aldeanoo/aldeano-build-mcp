@@ -17,6 +17,7 @@ import { registerFlightTools } from './tools/flight-tools.js';
 import { registerGameStateTools } from './tools/gamestate-tools.js';
 import { registerCraftingTools } from './tools/crafting-tools.js';
 import { registerFurnaceTools } from './tools/furnace-tools.js';
+import { createServices } from './services/index.js';
 
 setupStdioFiltering();
 
@@ -49,16 +50,17 @@ async function main() {
 
   const factory = new ToolFactory(server, connection);
   const getBot = () => connection.getBot()!;
+  const services = createServices(getBot, messageStore);
 
-  registerPositionTools(factory, getBot);
-  registerInventoryTools(factory, getBot);
-  registerBlockTools(factory, getBot);
-  registerEntityTools(factory, getBot);
-  registerChatTools(factory, getBot, messageStore);
-  registerFlightTools(factory, getBot);
-  registerGameStateTools(factory, getBot);
-  registerCraftingTools(factory, getBot);
-  registerFurnaceTools(factory, getBot);
+  registerPositionTools(factory, services.movement);
+  registerInventoryTools(factory, services.inventory);
+  registerBlockTools(factory, services.block);
+  registerEntityTools(factory, services.entity);
+  registerChatTools(factory, services.chat);
+  registerFlightTools(factory, services.movement);
+  registerGameStateTools(factory, services.gameState);
+  registerCraftingTools(factory, services.crafting);
+  registerFurnaceTools(factory, services.furnace);
 
   process.stdin.on('end', () => {
     connection.cleanup();
