@@ -64,7 +64,9 @@ test('typed teleport fails safely on denied permission, survival and cancellatio
   t.is(mock.bot.listenerCount('forcedMove'),0); t.is(mock.bot.listenerCount('end'),0);
   mock.bot.game.gameMode='survival'; await t.throwsAsync(new BoundedTeleportService(mock.bot).selfTo({x:20,y:70,z:20}));
   mock.bot.game.gameMode='creative';const controller=new AbortController();controller.abort();
-  await t.throwsAsync(new BoundedTeleportService(mock.bot).selfTo({x:20,y:70,z:20},controller.signal));
+  // DOMException is not recognized as Error by AVA on every supported Node version.
+  const cancelled = await new BoundedTeleportService(mock.bot).selfTo({x:20,y:70,z:20},controller.signal).then(() => undefined, (reason: unknown) => reason);
+  t.is(cancelled, controller.signal.reason);
 });
 
 test('6000 unique planned blocks require 6000 exact world matches',async t=>{
