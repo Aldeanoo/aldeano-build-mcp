@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -17,7 +19,14 @@ import { registerFlightTools } from './tools/flight-tools.js';
 import { registerGameStateTools } from './tools/gamestate-tools.js';
 import { registerCraftingTools } from './tools/crafting-tools.js';
 import { registerFurnaceTools } from './tools/furnace-tools.js';
+import { registerBuildTools } from './tools/build-tools.js';
+import { registerWorldTools } from './tools/world-tools.js';
+import { registerLocationTools } from './tools/location-tools.js';
 import { createServices } from './services/index.js';
+import { BuildService } from './build/build-service.js';
+import { WorldApiService } from './world/world-service.js';
+import { LocationMemory } from './world/locations/location-memory.js';
+import { NavigationService } from './world/navigation-service.js';
 
 setupStdioFiltering();
 
@@ -51,6 +60,10 @@ async function main() {
   const factory = new ToolFactory(server, connection);
   const getBot = () => connection.getBot()!;
   const services = createServices(getBot, messageStore);
+  const buildService = new BuildService(getBot);
+  const worldApi = new WorldApiService(getBot, buildService.config.maxScanBlocks);
+  const locations = new LocationMemory();
+  const navigation = new NavigationService(getBot);
 
   registerPositionTools(factory, services.movement);
   registerInventoryTools(factory, services.inventory);
@@ -61,6 +74,9 @@ async function main() {
   registerGameStateTools(factory, services.gameState);
   registerCraftingTools(factory, services.crafting);
   registerFurnaceTools(factory, services.furnace);
+  registerBuildTools(factory, buildService);
+  registerWorldTools(factory, worldApi);
+  registerLocationTools(factory, locations, navigation);
 
   process.stdin.on('end', () => {
     connection.cleanup();

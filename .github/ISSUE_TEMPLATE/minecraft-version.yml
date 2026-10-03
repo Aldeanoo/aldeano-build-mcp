@@ -1,0 +1,28 @@
+name: Minecraft compatibility
+description: Report a version-specific compatibility issue
+labels: [minecraft-version]
+body:
+  - type: input
+    id: minecraft
+    attributes: { label: Minecraft server version }
+    validations: { required: true }
+  - type: input
+    id: server
+    attributes: { label: Server implementation and build, placeholder: Paper 1.20.4 build 499 }
+    validations: { required: true }
+  - type: input
+    id: node
+    attributes: { label: Node.js version }
+    validations: { required: true }
+  - type: input
+    id: client
+    attributes: { label: MCP client }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes: { label: Logs and protocol errors }
+    validations: { required: true }

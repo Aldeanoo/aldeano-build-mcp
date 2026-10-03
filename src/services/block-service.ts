@@ -65,7 +65,9 @@ export class BlockService {
 
     if (name) {
       const items = bot.inventory.items();
-      const item = items.find((i) => i.name.toLowerCase().includes(name!.toLowerCase()));
+      const normalizedName = name.toLowerCase().replace(/^minecraft:/, '');
+      const item = items.find((i) => i.name.toLowerCase() === normalizedName)
+        ?? items.find((i) => i.name.toLowerCase().includes(normalizedName));
       if (!item) {
         throw new BlockPlacementError(`Item '${name}' not found in inventory`);
       }

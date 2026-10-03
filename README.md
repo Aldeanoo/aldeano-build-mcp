@@ -1,7 +1,19 @@
 # Aldeano Build MCP
 
-[![CI](https://github.com/Aldeano-Build/aldeano-build-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Aldeano-Build/aldeano-build-mcp/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Fork modificado de [yuniko-software/minecraft-mcp-server](https://github.com/yuniko-software/minecraft-mcp-server), mantenido como proyecto independiente por [Aldeanoo](https://github.com/Aldeanoo). Conserva la licencia Apache 2.0 y los créditos de Yuniko Software y sus colaboradores. No es una versión oficial ni implica su respaldo. [Origen, avisos y cambios](docs/attribution.md).
+
+**Uso desde Codex y flujo de construcción:** [guía en español](docs/CODEX_MCP.md).
+
+**Organización del repositorio y ubicación de archivos:** [mapa de carpetas](docs/REPOSITORY_LAYOUT.md). Las construcciones específicas están en `projects/<nombre>/`; sus archivos generados se guardan en `artifacts/` dentro de cada proyecto.
+
+**Comprobación completa:** `npm run doctor` ejecuta build, lint, todos los tests y los siete benchmarks en un Minecraft temporal aislado. Entrega `artifacts/doctor/latest.md` y `latest.json`, conservando cada ejecución. Requiere Java, `npm run mc:setup` y la EULA aceptada. `--offline` omite gameplay y marca el informe parcial. [Detalles](docs/DOCTOR.md).
+
+**Construcción fiable y migración:** TP creativo tipado, techos cerrados, conteos únicos exactos, verificación por sectores, reparación y recuperación persistente. [Contrato v2](docs/BUILD_RELIABILITY.md).
+
+**Issues heredados:** auditoría de los cuatro issues abiertos del original, correcciones de vuelo y frontera de confianza del chat, regresiones y migración de respuestas. [Detalles](docs/upstream-issues.md).
+
+[![CI](https://github.com/Aldeanoo/aldeano-build-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Aldeanoo/aldeano-build-mcp/actions)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D20.10.0-brightgreen.svg)](https://nodejs.org/)
 [![MCP Spec](https://img.shields.io/badge/MCP-1.27.1-purple.svg)](https://modelcontextprotocol.io/)
 
@@ -14,6 +26,8 @@ An extensible, provider-neutral **Model Context Protocol (MCP)** server and high
 > [!NOTE]
 > **Aldeano Build MCP is based on [yuniko-software/minecraft-mcp-server](https://github.com/yuniko-software/minecraft-mcp-server).**
 > The project has been extended and redesigned for high-level Minecraft automation and AI agent workflows, introducing a decoupled Services layer, dual-mode execution (MCP Server + Dev Shell), diagnostic tooling, typed error domains, and robust unit & integration test coverage.
+
+Las demos del original no certifican el rendimiento de este fork. En [#211](https://github.com/yuniko-software/minecraft-mcp-server/issues/211), los comentarios indican que la demo usa `/fill` y `/tp` en creativo; no es una medición de colocación física bloque a bloque. Aquí esas capacidades pasan por operaciones tipadas, acotadas y con preflight, no por comandos arbitrarios en `send-chat`. La evidencia reproducible es `npm run doctor` y su informe de bloques esperados/verificados; no se afirma haber reproducido la Casa Blanca ni garantiza la calidad de cualquier diseño generado por una IA.
 
 ---
 
@@ -64,7 +78,7 @@ Aldeano Build MCP provides:
 Launch a local server and have a bot running in Minecraft in just **4 commands**:
 
 ```bash
-git clone https://github.com/Aldeano-Build/aldeano-build-mcp.git && cd aldeano-build-mcp
+git clone https://github.com/Aldeanoo/aldeano-build-mcp.git && cd aldeano-build-mcp
 npm install
 npm run mc:setup
 npm run mc:start && npm run dev:shell -- --username TestBot
@@ -187,13 +201,30 @@ Once connected, your AI agent has access to these core tools:
 - `move-in-direction`: Move forward, backward, left, or right for a duration in milliseconds.
 
 ### Flight (Creative Mode)
-- `fly-to`: Fly directly through 3D space to destination coordinates.
+- `fly-to`: Cancellable creative flight through readable, empty space; restores gravity on completion or failure.
+- `stop-flying`: Cancel flight and restore normal gravity. Does not teleport or guarantee a safe landing.
 
 ### Voxel & World Manipulation
 - `get-block-info`: Inspect block name, ID, and metadata at given coordinates.
 - `find-blocks`: Locate the nearest blocks of a specific type (e.g. `diamond_ore`, `oak_log`).
 - `place-block`: Place a block against a target face with self-placement collision prevention.
 - `dig-block`: Break/mine a target block with automatic pathfinding into range.
+
+### Build Engine
+- `build-line`, `build-wall`, `build-floor`, `build-column`: Deterministic construction primitives.
+- `build-box`, `build-hollow-box`, `build-cylinder`, `build-sphere`, `build-roof`: Larger deterministic geometry.
+- `fill-region`, `clear-region`, `replace-blocks`, `clone-region`: Bounded world edits.
+- `build.preview`, `build.blueprint`: Validate, plan, execute, verify, and repair relative blueprints.
+- `check-build`, `verify-build`, `repair-build`: Inspect and correct builds by ID.
+- `build.cancel`, `build.pause`, `build.resume`, `build.history`: Build lifecycle and metadata.
+
+### World Intelligence
+- `world.get-region`, `world.scan-region`: Bounded reads with `summary`, `compact`, and `full` detail.
+- `world.get-heightmap`, `world.get-block`, `world.find-blocks`: Terrain and block queries.
+- `world.get-nearby-entities`, `world.get-environment`: Entity and environment context.
+- `world.screenshot`: Compact isometric PNG for visual review of a bounded structure.
+- `remember-location`, `list-locations`, `go-to-location`, `remove-location`: Session location memory.
+- `navigate-to`: Navigation with environmental options, retries, and stuck detection.
 
 ### Inventory & Items
 - `list-inventory`: List all items, quantities, and inventory slots.
@@ -207,8 +238,8 @@ Once connected, your AI agent has access to these core tools:
 - `smelt-item`: Smelt ores or food using a nearby furnace.
 
 ### Communication & Perception
-- `send-chat`: Send a chat message into the game.
-- `read-chat`: Read recent messages sent by other players in the world.
+- `send-chat`: Send a plain single-line chat message (1–256 characters); slash commands are rejected.
+- `read-chat`: Read recent player messages as quoted JSON with untrusted world provenance; see [migration](docs/upstream-issues.md).
 - `find-entity`: Locate the nearest mob, animal, or player by entity type.
 - `detect-gamemode`: Detect current game mode (`survival`, `creative`, `adventure`, `spectator`).
 
@@ -216,7 +247,7 @@ Once connected, your AI agent has access to these core tools:
 
 ## Tool Namespacing Convention
 
-To support the rapid expansion of high-level construction capabilities, future tools are organized under clear functional namespaces:
+High-level capabilities are organized under clear functional namespaces:
 
 - **`movement.*`**: Locomotion, waypoints, pathfinding controls (`movement.moveTo`, `movement.jump`).
 - **`blocks.*`**: Block inspection, raycasts, single-voxel actions (`blocks.info`, `blocks.place`).
@@ -276,9 +307,18 @@ npm run lint
 
 # Build TypeScript to dist/
 npm run build
+
+# Run a reproducible build benchmark against port 9999
+MC_PORT=9999 BUILD_FAST_MODE_ENABLED=true npm run benchmark -- wall_30x10
 ```
 
 ---
+
+## Design workflow
+
+For real buildings and named styles, the agent researches the subject and designs for recognizable proportions, strong composition and practical Minecraft interiors. It asks whether the user wants post-build validation, while the build engine always visits and checks that the complete construction volume is empty before placing blocks.
+
+Block coordinates, batching and retries stay inside Aldeano Build MCP. This keeps tool calls and token use focused on research and design.
 
 ## Roadmap
 
@@ -287,7 +327,15 @@ npm run build
 - [x] Automated local server setup and world reset scripts.
 - [x] Typed error domain hierarchy.
 - [x] 200+ unit and integration test suite with CI workflow.
-- [ ] Schematic and blueprint layout engine (`build.*`).
+- [x] World API with bounded summary, compact, and full scans.
+- [x] Deterministic build primitives and structured outputs.
+- [x] Blueprint engine, transformations, validation, planner, and executor.
+- [x] Verification, bounded repair, progress, and build history.
+- [x] Physical, fast, and cinematic execution strategies.
+- [x] Location memory and improved navigation.
+- [ ] Survival automation and inventory workflows.
+- [ ] `.schem` and `.schematic` adapters.
+- [ ] Streamable HTTP transport and remote security hardening.
 - [ ] Multi-bot worker coordination.
 - [ ] Visual spatial map rasterization for multi-modal VLM agents.
 
@@ -310,4 +358,4 @@ We welcome contributions from the community! Please read **[CONTRIBUTING.md](CON
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project retains the upstream [Apache License 2.0](LICENSE), including its original copyright notice. Modified inherited files identify the Aldeano Build MCP changes; attribution and the fork's scope are documented in [docs/attribution.md](docs/attribution.md). Dependency licenses remain their own.

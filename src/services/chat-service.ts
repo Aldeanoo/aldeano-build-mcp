@@ -18,6 +18,11 @@ export class ChatService {
   }
 
   sendChat(message: string): ActionResult {
+    // A chat tool must not become an arbitrary privileged command executor.
+    // eslint-disable-next-line no-control-regex
+    if (!message.trim() || message.length > 256 || /[\u0000-\u001f\u007f-\u009f]/.test(message) || message.trimStart().startsWith('/')) {
+      throw new Error('Chat accepts plain single-line messages (1–256 characters), not slash commands');
+    }
     const bot = this.getBot();
     bot.chat(message);
     return {
@@ -27,7 +32,7 @@ export class ChatService {
   }
 
   readChat(count = 10): ChatMessageResult[] {
-    if (!this.messageStore) {
+    if (!this.messageStore || !Number.isFinite(count) || count < 1) {
       return [];
     }
 
@@ -39,7 +44,8 @@ export class ChatService {
       message: msg.content,
       content: msg.content,
       timestamp: msg.timestamp,
-      trusted: true
+      source: 'minecraft_world',
+      trusted: false
     }));
   }
 }

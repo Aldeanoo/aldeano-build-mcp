@@ -11,9 +11,6 @@ test('checkPortInUse returns true when port is actively listening', async (t) =>
   const inUse = await checkPortInUse(port, '127.0.0.1', 500);
   t.true(inUse);
 
-  if (typeof server.closeAllConnections === 'function') {
-    server.closeAllConnections();
-  }
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
@@ -38,9 +35,6 @@ test('waitForServer resolves true when server opens port during wait', async (t)
   t.true(ready);
 
   clearTimeout(timer);
-  if (typeof delayedServer.closeAllConnections === 'function') {
-    delayedServer.closeAllConnections();
-  }
   await new Promise<void>((resolve) => delayedServer.close(() => resolve()));
 });
 

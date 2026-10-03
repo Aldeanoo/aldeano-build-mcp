@@ -1,4 +1,5 @@
 {
+  "x-attribution": "Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
@@ -12,6 +13,8 @@
   "include": [
     "src",
     "tests",
-    "scripts"
+    "scripts/**/*.ts",
+    "benchmarks",
+    "projects/**/*.ts"
   ]
 }

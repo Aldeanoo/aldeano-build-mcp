@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import test from 'ava';
 import sinon from 'sinon';
 import { registerCraftingTools } from '../../src/tools/crafting-tools.js';

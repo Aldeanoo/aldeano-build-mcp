@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "tower",
+  "size": { "x": 5, "y": 8, "z": 5 },
+  "palette": { "1": "stone_bricks" },
+  "blocks": [
+    { "x": 0, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "base" },
+    { "x": 4, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "base" },
+    { "x": 0, "y": 0, "z": 4, "block": "stone_bricks", "category": "foundation", "section": "base" },
+    { "x": 4, "y": 0, "z": 4, "block": "stone_bricks", "category": "foundation", "section": "base" },
+    { "x": 0, "y": 7, "z": 0, "block": "stone_bricks", "category": "roof", "section": "battlements" },
+    { "x": 2, "y": 7, "z": 0, "block": "stone_bricks", "category": "roof", "section": "battlements" },
+    { "x": 4, "y": 7, "z": 0, "block": "stone_bricks", "category": "roof", "section": "battlements" },
+    { "x": 0, "y": 7, "z": 4, "block": "stone_bricks", "category": "roof", "section": "battlements" },
+    { "x": 2, "y": 7, "z": 4, "block": "stone_bricks", "category": "roof", "section": "battlements" },
+    { "x": 4, "y": 7, "z": 4, "block": "stone_bricks", "category": "roof", "section": "battlements" }
+  ]
+}

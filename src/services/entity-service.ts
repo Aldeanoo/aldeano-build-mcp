@@ -1,5 +1,6 @@
 import type mineflayer from 'mineflayer';
 import { resolveBot } from './service-utils.js';
+import { normalizeWorldText } from '../world/untrusted-content.js';
 import type {
   BotOrGetter,
   EntityResult
@@ -33,7 +34,7 @@ export class EntityService {
       };
     }
 
-    const entityName = entity.name || (entity as { username?: string }).username || entity.type;
+    const entityName = normalizeWorldText(entity.name || (entity as { username?: string }).username || entity.type, 128);
     const position = {
       x: Math.floor(entity.position.x),
       y: Math.floor(entity.position.y),

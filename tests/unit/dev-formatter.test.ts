@@ -56,6 +56,8 @@ test('formatCoordinates returns formatted string', (t) => {
 
 test('formatBlock handles found and missing blocks', (t) => {
   const found = formatBlock({
+    success: true,
+    message: 'Block found',
     name: 'stone',
     type: 1,
     position: { x: 5, y: 60, z: 12 },

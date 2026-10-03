@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { ToolFactory } from '../tool-factory.js';
 import { MessageStore } from '../message-store.js';
@@ -34,17 +36,10 @@ export function registerChatTools(
     async ({ count = 10 }) => {
       const messages = chatService.readChat(count);
 
-      if (messages.length === 0) {
-        return factory.createResponse("No chat messages found");
-      }
-
-      let output = `Found ${messages.length} chat message(s):\n\n`;
-      messages.forEach((msg, index) => {
-        const timestamp = new Date(msg.timestamp).toISOString();
-        output += `${index + 1}. ${timestamp} - ${msg.username}: ${msg.message}\n`;
+      return factory.createWorldResponse({
+        summary: messages.length ? `Found ${messages.length} chat message(s)` : 'No chat messages found',
+        messages
       });
-
-      return factory.createResponse(output);
     }
   );
 }

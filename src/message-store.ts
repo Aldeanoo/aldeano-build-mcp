@@ -1,3 +1,7 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
+import { normalizeWorldText } from './world/untrusted-content.js';
+
 export interface StoredMessage {
   timestamp: number;
   username: string;
@@ -15,8 +19,8 @@ export class MessageStore {
   addMessage(username: string, content: string): void {
     const message: StoredMessage = {
       timestamp: Date.now(),
-      username,
-      content
+      username: normalizeWorldText(username, 128),
+      content: normalizeWorldText(content)
     };
 
     this.messages.push(message);
@@ -27,10 +31,10 @@ export class MessageStore {
   }
 
   getRecentMessages(count: number = 10): StoredMessage[] {
-    if (count <= 0) {
+    if (!Number.isFinite(count) || count < 1) {
       return [];
     }
-    return this.messages.slice(-count);
+    return this.messages.slice(-Math.min(this.maxMessages, Math.floor(count)));
   }
 
   getMaxMessages(): number {

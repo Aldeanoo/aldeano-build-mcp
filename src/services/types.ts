@@ -151,7 +151,8 @@ export interface ChatMessageResult {
   message: string;
   content?: string;
   timestamp: number;
-  trusted: boolean;
+  source: 'minecraft_world';
+  trusted: false;
 }
 
 export interface GamemodeResult {

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "castle-section",
+  "size": { "x": 9, "y": 6, "z": 3 },
+  "palette": { "1": "stone_bricks", "2": "cracked_stone_bricks" },
+  "blocks": [
+    { "x": 0, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "west tower" },
+    { "x": 8, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "east tower" },
+    { "x": 1, "y": 0, "z": 1, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 2, "y": 1, "z": 1, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 3, "y": 1, "z": 1, "block": "cracked_stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 4, "y": 1, "z": 1, "block": "stone_bricks", "category": "wall", "section": "gate" },
+    { "x": 5, "y": 1, "z": 1, "block": "cracked_stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 6, "y": 1, "z": 1, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 7, "y": 0, "z": 1, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 0, "y": 5, "z": 0, "block": "stone_bricks", "category": "roof", "section": "west tower" },
+    { "x": 8, "y": 5, "z": 0, "block": "stone_bricks", "category": "roof", "section": "east tower" },
+    { "x": 4, "y": 5, "z": 1, "block": "stone_bricks", "category": "roof", "section": "wall" }
+  ]
+}

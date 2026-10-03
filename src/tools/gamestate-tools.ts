@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { ToolFactory } from '../tool-factory.js';
 import { GameStateService } from '../services/game-state-service.js';
 import type { BotOrGetter } from '../services/types.js';

@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { ToolFactory } from '../tool-factory.js';
 import { InventoryService } from '../services/inventory-service.js';
@@ -18,7 +20,7 @@ export function registerInventoryTools(
     {},
     async () => {
       const result = inventoryService.listInventory();
-      return factory.createResponse(result.message ?? '');
+      return factory.createWorldResponse({ success: result.success, items: result.items, totalCount: result.totalCount, message: result.message });
     }
   );
 
@@ -31,9 +33,9 @@ export function registerInventoryTools(
     async ({ nameOrType }) => {
       const result = inventoryService.findItem(nameOrType);
       if (result) {
-        return factory.createResponse(result.message ?? '');
+        return factory.createWorldResponse({ success: result.success, item: result.item, message: result.message });
       }
-      return factory.createResponse(`Couldn't find any item matching '${nameOrType}' in inventory`);
+      return factory.createWorldResponse({ success: false, message: `Couldn't find any item matching '${nameOrType}' in inventory` });
     }
   );
 

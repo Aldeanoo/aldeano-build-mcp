@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { ToolFactory } from '../tool-factory.js';
 import { coerceCoordinates } from './coordinate-utils.js';
@@ -11,6 +13,10 @@ export function registerPositionTools(
   const movementService = botOrService instanceof MovementService
     ? botOrService
     : new MovementService(botOrService);
+
+  factory.registerTool('movement.teleport', 'Bounded creative self-teleport with destination block predicates, confirmed arrival and clearance. Requires command permission.', {
+    x:z.coerce.number().int(), y:z.coerce.number().int(), z:z.coerce.number().int()
+  }, async ({x,y,z}:{x:number;y:number;z:number}) => factory.createResponse(JSON.stringify(await movementService.teleportTo(x,y,z))));
 
   factory.registerTool(
     "get-position",

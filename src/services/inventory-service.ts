@@ -1,6 +1,7 @@
 import type mineflayer from 'mineflayer';
 import { InventoryError } from '../errors/index.js';
 import { resolveBot } from './service-utils.js';
+import { normalizeWorldText } from '../world/untrusted-content.js';
 import type {
   ActionResult,
   BotOrGetter,
@@ -20,7 +21,7 @@ export class InventoryService {
     const bot = this.getBot();
     const items = bot.inventory.items();
     const itemList: InventoryItem[] = items.map((item) => ({
-      name: item.name,
+      name: normalizeWorldText(item.name, 128),
       count: item.count,
       slot: item.slot
     }));
@@ -59,14 +60,14 @@ export class InventoryService {
 
     if (item) {
       const itemData: InventoryItem = {
-        name: item.name,
+        name: normalizeWorldText(item.name, 128),
         count: item.count,
         slot: item.slot
       };
-      return Object.assign(itemData, {
+      return Object.assign({ ...itemData }, {
         success: true,
         item: itemData,
-        message: `Found ${item.count} ${item.name} in inventory (slot ${item.slot})`
+        message: `Found ${item.count} ${itemData.name} in inventory (slot ${item.slot})`
       });
     }
 
