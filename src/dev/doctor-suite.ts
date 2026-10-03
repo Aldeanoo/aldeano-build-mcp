@@ -4,6 +4,7 @@ import { createWriteStream, existsSync, mkdirSync, mkdtempSync, readFileSync, wr
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isMinecraftEulaAccepted } from '../config/minecraft-eula.js';
 
 export interface DoctorStage {
   name: string;
@@ -64,7 +65,7 @@ async function startIsolatedServer(root: string, directory: string, signal: Abor
   const jar = path.join(root, '.dev', 'minecraft', 'server.jar');
   const eula = path.join(root, '.dev', 'minecraft', 'eula.txt');
   if (!existsSync(jar)) throw new Error('Falta server.jar: ejecuta npm run mc:setup primero.');
-  if (!existsSync(eula) || !/^eula\s*=\s*true\s*$/m.test(readFileSync(eula, 'utf8'))) throw new Error('Acepta la EULA del servidor local antes de ejecutar la integración.');
+  if (!existsSync(eula) || !isMinecraftEulaAccepted(readFileSync(eula, 'utf8'))) throw new Error('Acepta la EULA del servidor local antes de ejecutar la integración.');
   const port = await freePort();
   const serverDirectory = path.join(directory, 'server');
   mkdirSync(serverDirectory, { recursive: true });
