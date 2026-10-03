@@ -6,7 +6,7 @@ npm run doctor
 
 Ejecuta, en orden: compilación del producto, comprobación de tipos de código/pruebas/scripts `.ts`, análisis estático de sintaxis e imports de proyectos (también `.mts`/`.mjs`), lint, todos los tests unitarios, todos los tests de integración con Minecraft real y los siete casos de benchmark. El análisis de proyectos no ejecuta sus construcciones ni certifica sus mundos. Continúa después de errores de calidad para entregar el diagnóstico completo; devuelve código 1 si alguna comprobación falla.
 
-Requisitos: dependencias instaladas, Java compatible y `.dev/minecraft/server.jar` preparado con `npm run mc:setup`. La EULA del servidor local debe estar aceptada previamente. Doctor no descarga software ni acepta licencias automáticamente.
+Requisitos: dependencias instaladas, Java compatible y `.dev/minecraft/server.jar` preparado. Lee la EULA y, solo si la aceptas, ejecuta `npm run mc:setup -- --accept-eula`. Si ya existe una aceptación válida, no hace falta repetir el flag. Doctor no descarga software ni acepta licencias automáticamente. [Instalación paso a paso](installation.md).
 
 ## Aislamiento y resultados
 
