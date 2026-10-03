@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { isMinecraftEulaAccepted } from '../../src/config/minecraft-eula.js';
 
 export const DEFAULT_MC_VERSION = '1.20.4';
 
@@ -147,6 +148,10 @@ export function writeEula(mcDir: string): void {
  */
 export function writeServerProperties(mcDir: string): void {
   const propsPath = path.join(mcDir, 'server.properties');
+  if (fs.existsSync(propsPath)) {
+    console.log(`[setup] Keeping existing server.properties at ${propsPath}`);
+    return;
+  }
   fs.writeFileSync(propsPath, SERVER_PROPERTIES_CONTENT, 'utf-8');
   console.log(`[setup] Generated server.properties (127.0.0.1:25565, creative, peaceful) at ${propsPath}`);
 }
@@ -161,7 +166,7 @@ export async function downloadFileWithProgress(url: string, destPath: string, la
 
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'AldeanoBuildMCP/2.0 (setup-server; https://github.com/Aldeano-Build-MCP)'
+      'User-Agent': 'AldeanoBuildMCP/2.0 (setup-server; https://github.com/Aldeanoo/aldeano-build-mcp)'
     }
   });
 
@@ -350,12 +355,25 @@ export interface SetupOptions {
   mcDir?: string;
   version?: string;
   force?: boolean;
+  acceptEula?: boolean;
+}
+
+/** Require explicit consent before creating files or downloading a server. */
+export function assertEulaAccepted(mcDir: string, acceptEula = false): void {
+  if (acceptEula) return;
+  const eulaPath = path.join(mcDir, 'eula.txt');
+  if (fs.existsSync(eulaPath) && isMinecraftEulaAccepted(fs.readFileSync(eulaPath, 'utf-8'))) return;
+  throw new Error('EULA consent required. Read https://www.minecraft.net/en-us/eula; if you agree, run npm run mc:setup -- --accept-eula. No files have been changed.');
 }
 
 /**
  * Main setup runner for local Minecraft development server.
  */
 export async function setupServer(options: SetupOptions = {}): Promise<void> {
+  const mcDir = options.mcDir || getMinecraftDevDir();
+  const acceptEula = options.acceptEula ?? process.argv.includes('--accept-eula');
+  assertEulaAccepted(mcDir, acceptEula);
+
   console.log('================================================================');
   console.log('       Aldeano Build MCP - Local Minecraft Server Setup        ');
   console.log('================================================================\n');
@@ -372,12 +390,11 @@ export async function setupServer(options: SetupOptions = {}): Promise<void> {
 
   console.log(`[setup] Java detected: ${javaCheck.version || 'Version detected'} (${javaCheck.output?.split('\n')[0]})`);
   if (javaCheck.majorVersion && javaCheck.majorVersion < 17) {
-    console.warn(`[setup] WARNING: Detected Java version is ${javaCheck.majorVersion}. Minecraft 1.20+ recommends Java 17 or 21.`);
+    throw new Error(`Java ${javaCheck.majorVersion} is incompatible with Minecraft ${DEFAULT_MC_VERSION}; install Java 17 or 21.`);
   }
 
   // 2. Prepare Directory
   console.log('\n[step 2/4] Verifying local development directory...');
-  const mcDir = options.mcDir || getMinecraftDevDir();
   ensureMinecraftDir(mcDir);
 
   // 3. Download Server JAR
@@ -388,7 +405,7 @@ export async function setupServer(options: SetupOptions = {}): Promise<void> {
 
   // 4. Configuration (EULA + server.properties)
   console.log('\n[step 4/4] Writing configuration files...');
-  writeEula(mcDir);
+  if (acceptEula) writeEula(mcDir);
   writeServerProperties(mcDir);
 
   console.log('\n================================================================');
