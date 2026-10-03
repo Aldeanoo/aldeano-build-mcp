@@ -13,3 +13,7 @@ Legacy chat, inventory and entity read tools serialize this content in a JSON en
 These measures mitigate indirect prompt injection; they cannot guarantee that an LLM will respect the boundary. The host must keep world data separate from privileged instructions, enforce permissions and decline actions requested by untrusted environment text. New sign, book, custom-item or NBT readers must apply the same boundary before exposing any text. No new such reader was added by this audit.
 
 Any future HTTP transport must bind to localhost by default, require authentication for remote access, rate limit requests, and apply per-tool restrictions. Minecraft logic remains in services rather than transport handlers.
+
+## Dependency audit
+
+CI and Doctor passing do not certify dependency security. The October 2026 review found unresolved npm audit advisories, including a critical transitive development dependency. See [the dated dependency audit](pull-request-audit.md#pendiente-de-seguridad-npm-audit) for counts, limitations and required follow-up; do not use `npm audit fix --force` to replace compatibility review.
