@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible Aldeano Build MCP problem
+labels: [bug]
+body:
+  - type: input
+    id: minecraft
+    attributes: { label: Minecraft version }
+    validations: { required: true }
+  - type: input
+    id: node
+    attributes: { label: Node.js version }
+    validations: { required: true }
+  - type: input
+    id: aldeano
+    attributes: { label: Aldeano Build MCP version }
+    validations: { required: true }
+  - type: input
+    id: client
+    attributes: { label: MCP client }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes: { label: Relevant logs }
+    validations: { required: true }

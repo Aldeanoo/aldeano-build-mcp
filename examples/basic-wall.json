@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "name": "basic-wall",
+  "size": { "x": 5, "y": 3, "z": 1 },
+  "palette": { "1": "stone_bricks" },
+  "blocks": [
+    { "x": 0, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 1, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 2, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 3, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 4, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "wall" },
+    { "x": 0, "y": 1, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 1, "y": 1, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 2, "y": 1, "z": 0, "block": "glass", "category": "wall", "section": "window" },
+    { "x": 3, "y": 1, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 4, "y": 1, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 0, "y": 2, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 1, "y": 2, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 2, "y": 2, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 3, "y": 2, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" },
+    { "x": 4, "y": 2, "z": 0, "block": "stone_bricks", "category": "wall", "section": "wall" }
+  ]
+}

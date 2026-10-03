@@ -44,12 +44,12 @@ function createMockBot(username = 'TestBot'): mineflayer.Bot {
 }
 
 test('ConnectionStatus enum contains all expected states', (t) => {
-  t.is(ConnectionStatus.DISCONNECTED, 'DISCONNECTED');
-  t.is(ConnectionStatus.CONNECTING, 'CONNECTING');
-  t.is(ConnectionStatus.CONNECTED, 'CONNECTED');
-  t.is(ConnectionStatus.READY, 'READY');
-  t.is(ConnectionStatus.RECONNECTING, 'RECONNECTING');
-  t.is(ConnectionStatus.ERROR, 'ERROR');
+  t.is(String(ConnectionStatus.DISCONNECTED), 'DISCONNECTED');
+  t.is(String(ConnectionStatus.CONNECTING), 'CONNECTING');
+  t.is(String(ConnectionStatus.CONNECTED), 'CONNECTED');
+  t.is(String(ConnectionStatus.READY), 'READY');
+  t.is(String(ConnectionStatus.RECONNECTING), 'RECONNECTING');
+  t.is(String(ConnectionStatus.ERROR), 'ERROR');
 });
 
 test('RuntimeEventEmitter supports strongly typed event subscriptions and emission', (t) => {
@@ -141,11 +141,11 @@ test('BotSession automatically tracks untrusted chat messages from world and ign
   const session = new BotSession({ host: 'localhost', port: 25565, username: 'MyBot' }, mockBot);
 
   // Simulate incoming chat from world player
-  mockBot.emit('chat', 'Player1', 'Hello there');
+  (mockBot as unknown as EventEmitter).emit('chat', 'Player1', 'Hello there');
   // Simulate bot's own chat echo
-  mockBot.emit('chat', 'MyBot', 'I am MyBot');
+  (mockBot as unknown as EventEmitter).emit('chat', 'MyBot', 'I am MyBot');
   // Simulate another player
-  mockBot.emit('chat', 'Player2', 'Watch out!');
+  (mockBot as unknown as EventEmitter).emit('chat', 'Player2', 'Watch out!');
 
   const history = session.getUntrustedChatMessages();
   t.is(history.length, 2);

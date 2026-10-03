@@ -1,3 +1,4 @@
+# Modified by Aldeano Build MCP contributors; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
 # Dist folder
 dist/
 
@@ -7,6 +8,10 @@ node_modules/
 # Local development and server files
 .dev/
 .dev/**
+
+# Generated construction state, plans, reports and screenshots (keep local copies)
+/projects/*/artifacts/
+/artifacts/
 
 # Environment variables
 .env

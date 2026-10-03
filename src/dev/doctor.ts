@@ -3,6 +3,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { runDoctorSuite } from './doctor-suite.js';
 
 export type CheckStatus = 'OK' | 'WARN' | 'FAIL' | 'INFO';
 
@@ -367,7 +368,7 @@ export async function runDiagnostics(projectRoot: string = process.cwd()): Promi
   items.push(checkMineflayerPackages(projectRoot));
   items.push(checkMcpSdk(projectRoot));
   items.push(checkLocalMinecraftServer(projectRoot));
-  items.push(await checkPortStatus(25565, '127.0.0.1'));
+  items.push(await checkPortStatus(Number(process.env.MC_PORT ?? 25565), process.env.MC_HOST ?? '127.0.0.1'));
   items.push(checkBotConfig());
 
   const passed = items.filter((i) => i.status === 'OK').length;
@@ -434,12 +435,12 @@ const currentFile = fileURLToPath(import.meta.url);
 const invokedFile = process.argv[1] ? path.resolve(process.argv[1]) : '';
 
 if (invokedFile === currentFile || invokedFile.endsWith('doctor.ts') || invokedFile.endsWith('doctor.js')) {
-  runDiagnostics().then((report) => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  runDiagnostics(root).then(async (report) => {
     printDiagnosticReport(report);
-    if (!report.allCriticalPassed) {
-      process.exit(1);
-    }
-    process.exit(0);
+    if (process.argv.includes('--checks-only')) { process.exitCode = report.allCriticalPassed ? 0 : 1; return; }
+    const suite = await runDoctorSuite({ root, offline: process.argv.includes('--offline') });
+    process.exitCode = !report.allCriticalPassed || suite.status === 'failed' ? 1 : 0;
   }).catch((err) => {
     console.error('\n[ERROR] Doctor failed unexpectedly:', err);
     process.exit(1);

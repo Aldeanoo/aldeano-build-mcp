@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LOG_SEVERITY: Record<LogLevel, number> = {

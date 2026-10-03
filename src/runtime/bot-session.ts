@@ -22,6 +22,7 @@ import { WorldService } from '../services/world-service.js';
 import { ChatService } from '../services/chat-service.js';
 import { CraftingService } from '../services/crafting-service.js';
 import { MessageStore as MessageStoreClass } from '../message-store.js';
+import { normalizeWorldText } from '../world/untrusted-content.js';
 
 const { Movements: MovementsClass } = pathfinderPkg;
 
@@ -177,8 +178,8 @@ export class BotSession {
     return {
       source: 'minecraft_world',
       trusted: false,
-      username,
-      message,
+      username: normalizeWorldText(username, 128),
+      message: normalizeWorldText(message),
       timestamp: Date.now(),
     };
   }
@@ -190,7 +191,7 @@ export class BotSession {
     return {
       source: 'minecraft_world',
       trusted: false,
-      lines,
+      lines: lines.slice(0, 4).map(line => normalizeWorldText(line)),
       position,
       timestamp: Date.now(),
     };
@@ -206,9 +207,9 @@ export class BotSession {
       source: 'minecraft_world',
       trusted: false,
       id: entity.id,
-      name: entity.name,
-      displayName: entity.displayName,
-      customName,
+      name: entity.name === undefined ? undefined : normalizeWorldText(entity.name, 128),
+      displayName: entity.displayName === undefined ? undefined : normalizeWorldText(entity.displayName, 128),
+      customName: customName === undefined ? undefined : normalizeWorldText(customName, 128),
       type: entity.type,
       timestamp: Date.now(),
     };

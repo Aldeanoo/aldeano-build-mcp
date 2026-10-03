@@ -1,7 +1,17 @@
 {
   "name": "aldeano-build-mcp",
   "version": "0.1.0",
-  "description": "An MCP server and automation framework that allows AI agents to interact with, understand and build inside Minecraft.",
+  "description": "Modified fork of yuniko-software/minecraft-mcp-server with deterministic Minecraft building, verification and automation.",
+  "license": "Apache-2.0",
+  "x-attribution": "Derived from yuniko-software/minecraft-mcp-server; modified by Aldeano Build MCP contributors. See LICENSE and docs/attribution.md.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aldeanoo/aldeano-build-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aldeanoo/aldeano-build-mcp/issues"
+  },
+  "homepage": "https://github.com/Aldeanoo/aldeano-build-mcp#readme",
   "type": "module",
   "main": "dist/main.js",
   "bin": {
@@ -31,8 +41,12 @@
     "test:unit": "ava tests/unit/**/*.test.ts",
     "test:integration": "ava tests/integration/**/*.ts",
     "test:minecraft": "tsx scripts/run-smoke-test.ts",
-    "lint": "eslint \"{src,tests,scripts}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,tests,scripts}/**/*.ts\" --fix"
+    "benchmark": "tsx benchmarks/runner.ts",
+    "screenshot": "tsx scripts/capture-world.ts",
+    "build:eiffel": "tsx projects/eiffel/scripts/build-eiffel-medium.ts",
+    "build:nyc": "tsx projects/nyc/scripts/build-nyc-giant.ts",
+    "lint": "eslint \"{src,tests,scripts,benchmarks,projects}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,tests,scripts,benchmarks,projects}/**/*.ts\" --fix"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

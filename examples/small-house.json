@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "small-house",
+  "size": { "x": 5, "y": 5, "z": 5 },
+  "palette": { "1": "oak_planks", "2": "stone_bricks", "3": "glass" },
+  "blocks": [
+    { "x": 0, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "foundation" },
+    { "x": 4, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "foundation" },
+    { "x": 0, "y": 0, "z": 4, "block": "stone_bricks", "category": "foundation", "section": "foundation" },
+    { "x": 4, "y": 0, "z": 4, "block": "stone_bricks", "category": "foundation", "section": "foundation" },
+    { "x": 0, "y": 1, "z": 0, "block": "oak_planks", "category": "wall", "section": "north wall" },
+    { "x": 1, "y": 1, "z": 0, "block": "glass", "category": "wall", "section": "north wall" },
+    { "x": 2, "y": 1, "z": 0, "block": "oak_door", "state": { "half": "lower", "facing": "north" }, "category": "decoration", "section": "entrance", "dependsOn": [{ "x": 2, "y": 0, "z": 0 }] },
+    { "x": 2, "y": 0, "z": 0, "block": "stone_bricks", "category": "foundation", "section": "foundation" },
+    { "x": 3, "y": 1, "z": 0, "block": "glass", "category": "wall", "section": "north wall" },
+    { "x": 4, "y": 1, "z": 0, "block": "oak_planks", "category": "wall", "section": "north wall" },
+    { "x": 0, "y": 1, "z": 4, "block": "oak_planks", "category": "wall", "section": "south wall" },
+    { "x": 2, "y": 1, "z": 4, "block": "glass", "category": "wall", "section": "south wall" },
+    { "x": 4, "y": 1, "z": 4, "block": "oak_planks", "category": "wall", "section": "south wall" },
+    { "x": 0, "y": 4, "z": 0, "block": "oak_planks", "category": "roof", "section": "roof" },
+    { "x": 1, "y": 4, "z": 0, "block": "oak_planks", "category": "roof", "section": "roof" },
+    { "x": 2, "y": 4, "z": 0, "block": "oak_planks", "category": "roof", "section": "roof" },
+    { "x": 3, "y": 4, "z": 0, "block": "oak_planks", "category": "roof", "section": "roof" },
+    { "x": 4, "y": 4, "z": 0, "block": "oak_planks", "category": "roof", "section": "roof" }
+  ]
+}

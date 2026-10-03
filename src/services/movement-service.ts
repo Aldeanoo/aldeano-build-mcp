@@ -3,6 +3,8 @@ import pathfinderPkg from 'mineflayer-pathfinder';
 const { goals } = pathfinderPkg;
 import { Vec3 } from 'vec3';
 import { MovementError } from '../errors/index.js';
+import { BoundedTeleportService } from './bounded-teleport-service.js';
+import { CreativeFlightService } from './creative-flight-service.js';
 import { resolveBot } from './service-utils.js';
 import type {
   BotOrGetter,
@@ -12,7 +14,10 @@ import type {
 } from './types.js';
 
 export class MovementService {
-  constructor(private botOrGetter: BotOrGetter) {}
+  private readonly flight: CreativeFlightService;
+  constructor(private botOrGetter: BotOrGetter) {
+    this.flight = new CreativeFlightService(botOrGetter);
+  }
 
   protected getBot(): mineflayer.Bot {
     return resolveBot(this.botOrGetter);
@@ -28,10 +33,19 @@ export class MovementService {
     };
   }
 
+  async teleportTo(x:number,y:number,z:number): Promise<MovementResult> {
+    this.flight.stop();
+    await new BoundedTeleportService(this.botOrGetter).selfTo({x,y,z});
+    return {success:true,position:{x,y,z},message:`Teleported to (${x}, ${y}, ${z}) and confirmed destination clearance`};
+  }
+
   stop(): void {
+    this.flight.stop();
     const bot = this.getBot();
     if (bot.pathfinder) {
       bot.pathfinder.stop();
+      // stop() only sets a deferred flag in pathfinder; clear it now, before a future goto.
+      bot.pathfinder.setGoal?.(null);
     }
     const anyBot = bot as unknown as { clearControlStates?: () => void };
     if (typeof anyBot.clearControlStates === 'function') {
@@ -46,7 +60,9 @@ export class MovementService {
     timeoutMs?: number,
     range = 1
   ): Promise<MovementResult> {
+    this.flight.stop();
     const bot = this.getBot();
+    bot.pathfinder.setGoal?.(null);
     const goal = new goals.GoalNear(x, y, z, range);
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let timeoutPromise: Promise<never> | null = null;
@@ -107,6 +123,7 @@ export class MovementService {
   }
 
   async jump(): Promise<MovementResult> {
+    this.flight.stop();
     const bot = this.getBot();
     bot.setControlState('jump', true);
     setTimeout(() => bot.setControlState('jump', false), 250);
@@ -120,6 +137,7 @@ export class MovementService {
     direction: MovementDirection,
     durationMs = 1000
   ): Promise<MovementResult> {
+    this.flight.stop();
     const bot = this.getBot();
     return new Promise((resolve) => {
       bot.setControlState(direction, true);
@@ -134,70 +152,7 @@ export class MovementService {
   }
 
   async flyTo(x: number, y: number, z: number, _speed?: number): Promise<MovementResult> {
-    const bot = this.getBot();
-
-    if (!bot.creative) {
-      throw new MovementError('Creative mode is not available. Cannot fly.');
-    }
-
-    const controller = new AbortController();
-    const FLIGHT_TIMEOUT_MS = 20000;
-
-    const timeoutId = setTimeout(() => {
-      if (!controller.signal.aborted) {
-        controller.abort();
-      }
-    }, FLIGHT_TIMEOUT_MS);
-
-    try {
-      const destination = new Vec3(x, y, z);
-      await this.createCancellableFlightOperation(bot, destination, controller);
-      return {
-        success: true,
-        position: { x, y, z },
-        message: `Successfully flew to position (${x}, ${y}, ${z}).`
-      };
-    } catch (error) {
-      if (controller.signal.aborted) {
-        const currentPosAfterTimeout = bot.entity.position;
-        throw new MovementError(
-          `Flight timed out after ${FLIGHT_TIMEOUT_MS / 1000} seconds. The destination may be unreachable. ` +
-          `Current position: (${Math.floor(currentPosAfterTimeout.x)}, ${Math.floor(currentPosAfterTimeout.y)}, ${Math.floor(currentPosAfterTimeout.z)})`
-        );
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      throw new MovementError(message);
-    } finally {
-      clearTimeout(timeoutId);
-      bot.creative.stopFlying();
-    }
-  }
-
-  private createCancellableFlightOperation(
-    bot: mineflayer.Bot,
-    destination: Vec3,
-    controller: AbortController
-  ): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      let aborted = false;
-
-      controller.signal.addEventListener('abort', () => {
-        aborted = true;
-        bot.creative.stopFlying();
-        reject(new MovementError('Flight operation cancelled'));
-      });
-
-      bot.creative.flyTo(destination)
-        .then(() => {
-          if (!aborted) {
-            resolve(true);
-          }
-        })
-        .catch((err: Error) => {
-          if (!aborted) {
-            reject(err);
-          }
-        });
-    });
+    await this.flight.flyTo(new Vec3(x, y, z));
+    return { success: true, position: { x, y, z }, message: `Successfully flew to position (${x}, ${y}, ${z}).` };
   }
 }

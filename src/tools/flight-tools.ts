@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { ToolFactory } from '../tool-factory.js';
 import { coerceCoordinates } from './coordinate-utils.js';
@@ -12,6 +14,11 @@ export function registerFlightTools(
   const movementService = botOrService instanceof MovementService
     ? botOrService
     : new MovementService(botOrService);
+
+  factory.registerTool('stop-flying', 'Cancel flight and restore normal gravity; does not teleport or guarantee a safe landing.', {}, async () => {
+    movementService.stop();
+    return factory.createResponse('Flight stopped; normal gravity restored');
+  });
 
   factory.registerTool(
     "fly-to",

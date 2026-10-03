@@ -1,3 +1,5 @@
+// Modified for Aldeano Build MCP; derived from yuniko-software/minecraft-mcp-server. See LICENSE and docs/attribution.md.
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { ToolFactory } from '../tool-factory.js';
 import { coerceCoordinates } from './coordinate-utils.js';

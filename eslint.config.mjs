@@ -10,7 +10,7 @@ export default defineConfig([
     js.configs.recommended,
 
     {
-        files: ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+        files: ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "projects/**/*.ts"],
         languageOptions: {
             parser: tsParser,
             parserOptions: {

@@ -6,7 +6,7 @@ class MemoryStream extends Writable {
   public output = '';
 
   override _write(chunk: unknown, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
-    this.output += chunk.toString();
+    this.output += String(chunk);
     callback();
   }
 }
