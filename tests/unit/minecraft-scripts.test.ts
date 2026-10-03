@@ -9,6 +9,8 @@ import {
   ensureMinecraftDir,
   writeEula,
   writeServerProperties,
+  assertEulaAccepted,
+  setupServer,
   SERVER_PROPERTIES_CONTENT
 } from '../../scripts/minecraft/setup-server.js';
 import { checkPortInUse } from '../../scripts/minecraft/start-server.js';
@@ -75,6 +77,46 @@ test('SERVER_PROPERTIES_CONTENT contains mandatory localhost configuration', (t)
   t.true(SERVER_PROPERTIES_CONTENT.includes('server-port=25565'));
   t.true(SERVER_PROPERTIES_CONTENT.includes('online-mode=false'));
   t.true(SERVER_PROPERTIES_CONTENT.includes('gamemode=creative'));
+});
+
+test('setup rejects missing EULA before creating directories or downloading', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mc-consent-test-'));
+  try {
+    const mcDir = path.join(tempDir, 'unprepared');
+    await t.throwsAsync(setupServer({ mcDir, acceptEula: false }), { message: /EULA consent required/ });
+    t.false(fs.existsSync(mcDir));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('EULA consent ignores comments and respects the final setting', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mc-eula-test-'));
+  try {
+    t.notThrows(() => assertEulaAccepted(tempDir, true));
+    t.false(fs.existsSync(path.join(tempDir, 'eula.txt')));
+    fs.writeFileSync(path.join(tempDir, 'eula.txt'), '# eula=true\neula=false\n');
+    t.throws(() => assertEulaAccepted(tempDir), { message: /EULA consent required/ });
+    fs.writeFileSync(path.join(tempDir, 'eula.txt'), '# My consent\n eula = true \n');
+    t.notThrows(() => assertEulaAccepted(tempDir));
+    fs.appendFileSync(path.join(tempDir, 'eula.txt'), 'eula=false\n');
+    t.throws(() => assertEulaAccepted(tempDir), { message: /EULA consent required/ });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('repeated setup preserves custom server properties', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mc-properties-test-'));
+  try {
+    const propsPath = path.join(tempDir, 'server.properties');
+    const custom = '# Custom local settings\nserver-ip=127.0.0.1\nserver-port=25570\n';
+    fs.writeFileSync(propsPath, custom);
+    writeServerProperties(tempDir);
+    t.is(fs.readFileSync(propsPath, 'utf-8'), custom);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('checkPortInUse and isServerRunning return false for unused port', async (t) => {

@@ -4,6 +4,7 @@ import net from 'node:net';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { runDoctorSuite } from './doctor-suite.js';
+import { isMinecraftEulaAccepted } from '../config/minecraft-eula.js';
 
 export type CheckStatus = 'OK' | 'WARN' | 'FAIL' | 'INFO';
 
@@ -26,10 +27,11 @@ export interface DiagnosticReport {
 }
 
 /**
- * Checks if Node.js version satisfies >= 20.10.0.
+ * Checks the intersection of the installed tooling's Node.js requirements.
+ * The optional minimum remains available for callers with stricter requirements.
  */
-export function checkNodeVersion(minVersion = '20.10.0'): DiagnosticItem {
-  const currentVersion = process.version.replace(/^v/, '');
+export function checkNodeVersion(minVersion = '20.19.0', runtimeVersion = process.version): DiagnosticItem {
+  const currentVersion = runtimeVersion.replace(/^v/, '');
   const parseSemver = (v: string) => v.split('.').map((x) => parseInt(x, 10) || 0);
 
   const [curMajor, curMinor, curPatch] = parseSemver(currentVersion);
@@ -46,13 +48,21 @@ export function checkNodeVersion(minVersion = '20.10.0'): DiagnosticItem {
     }
   }
 
+  const supported = /^\d+\.\d+\.\d+$/.test(currentVersion)
+    && ((curMajor === 20 && curMinor >= 19)
+      || (curMajor === 22 && curMinor >= 12)
+      || curMajor >= 24);
+  const valid = satisfies && supported;
+
   return {
     category: 'Runtime',
     check: 'Node.js Version',
-    status: satisfies ? 'OK' : 'FAIL',
-    details: satisfies
-      ? `v${currentVersion} (>= ${minVersion} required)`
-      : `v${currentVersion} is lower than required v${minVersion}`,
+    status: valid ? 'OK' : 'FAIL',
+    details: valid
+      ? `v${currentVersion} (>= ${minVersion} and ^20.19.0 || ^22.12.0 || >=24.0.0 required; Node 24 LTS recommended)`
+      : !satisfies
+        ? `v${currentVersion} is lower than required v${minVersion}`
+        : `v${currentVersion} is unsupported; ^20.19.0 || ^22.12.0 || >=24.0.0 required`,
     critical: true
   };
 }
@@ -126,7 +136,7 @@ export function checkDependencies(projectRoot: string = process.cwd()): Diagnost
       category: 'Dependencies',
       check: 'node_modules Directory',
       status: 'FAIL',
-      details: 'node_modules directory missing. Run "npm install"',
+      details: 'node_modules directory missing. Run "npm ci"',
       critical: true
     };
   }
@@ -153,7 +163,7 @@ export function checkDependencies(projectRoot: string = process.cwd()): Diagnost
       category: 'Dependencies',
       check: 'node_modules Installed',
       status: 'FAIL',
-      details: `Missing packages: ${missing.join(', ')}. Run "npm install"`,
+      details: `Missing packages: ${missing.join(', ')}. Run "npm ci"`,
       critical: true
     };
   }
@@ -236,7 +246,7 @@ export function checkMcpSdk(projectRoot: string = process.cwd()): DiagnosticItem
       category: 'MCP SDK',
       check: 'MCP SDK Configuration',
       status: 'FAIL',
-      details: '@modelcontextprotocol/sdk not found. Run "npm install"',
+      details: '@modelcontextprotocol/sdk not found. Run "npm ci"',
       critical: true
     };
   }
@@ -275,7 +285,7 @@ export function checkLocalMinecraftServer(projectRoot: string = process.cwd()): 
   const jarStats = fs.statSync(jarPath);
   const sizeMb = (jarStats.size / (1024 * 1024)).toFixed(1);
 
-  const hasEula = fs.existsSync(eulaPath) && fs.readFileSync(eulaPath, 'utf-8').includes('eula=true');
+  const hasEula = fs.existsSync(eulaPath) && isMinecraftEulaAccepted(fs.readFileSync(eulaPath, 'utf-8'));
   const hasProps = fs.existsSync(propsPath);
 
   if (!hasEula || !hasProps) {
@@ -283,7 +293,9 @@ export function checkLocalMinecraftServer(projectRoot: string = process.cwd()): 
       category: 'Minecraft Server',
       check: 'Local Server Files',
       status: 'WARN',
-      details: `server.jar present (${sizeMb} MB), but ${!hasEula ? 'eula.txt' : 'server.properties'} is missing. Run "npm run mc:setup"`,
+      details: !hasEula
+        ? 'EULA missing or not accepted. Read the Minecraft EULA; only if you agree, run "npm run mc:setup -- --accept-eula".'
+        : `server.jar present (${sizeMb} MB), but server.properties is missing. Run "npm run mc:setup".`,
       critical: false
     };
   }

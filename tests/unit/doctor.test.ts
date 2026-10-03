@@ -26,6 +26,18 @@ test('checkNodeVersion fails for impossible version', (t) => {
   t.true(result.details.includes('lower than required'));
 });
 
+for (const version of ['20.10.0', '20.18.3', '21.7.3', '22.0.0', '22.11.0', '23.11.0', 'invalid']) {
+  test(`checkNodeVersion rejects incompatible runtime ${version}`, (t) => {
+    t.is(checkNodeVersion(undefined, version).status, 'FAIL');
+  });
+}
+
+for (const version of ['20.19.0', '20.20.1', '22.12.0', '22.20.0', '24.0.0', 'v24.19.0']) {
+  test(`checkNodeVersion accepts compatible runtime ${version}`, (t) => {
+    t.is(checkNodeVersion(undefined, version).status, 'OK');
+  });
+}
+
 test('checkJavaVersion detects installed Java', (t) => {
   const result = checkJavaVersion();
   t.is(result.category, 'Runtime');
