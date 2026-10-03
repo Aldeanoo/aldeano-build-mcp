@@ -4,13 +4,7 @@ New Minecraft behavior belongs in `src/build`, `src/world`, or a domain service.
 
 For file placement, project scripts and generated artifacts, follow [the repository map](REPOSITORY_LAYOUT.md) and the rules in [AGENTS.md](../AGENTS.md).
 
-For the local validation server used in Part 2, set the port explicitly:
-
-```powershell
-$env:MC_PORT='9999'
-npm.cmd run test:minecraft
-npm.cmd run screenshot
-```
+For the local server, prerequisites and MCP connection, follow [the installation guide](installation.md). Do not point destructive tests at a project world or capture screenshots as part of ordinary quality checks.
 
 Quality checks:
 
@@ -18,7 +12,7 @@ Quality checks:
 npm run doctor
 ```
 
-Changes that affect real gameplay also require the live integration test. Preserve public tool schemas or provide a migration path.
+Changes that affect real gameplay require Doctor's live integrations, not just offline checks. Preserve public tool schemas or provide a migration path.
 
 Doctor includes build, lint, unit tests, live integration and benchmarks in an isolated world, then saves JSON/Markdown reports. See [DOCTOR.md](DOCTOR.md) and [the v2 result migration](BUILD_RELIABILITY.md). `--offline` is explicitly partial; individual commands remain available for focused debugging.
 
