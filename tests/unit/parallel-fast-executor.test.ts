@@ -34,7 +34,9 @@ test('workers finish without timers and preserve per-section overwrite order',as
 
 test('cancel before execution submits no commands',async t=>{
   const worker=mockBot();const control=new AbortController();control.abort();
-  await t.throwsAsync(new ParallelFastExecutor([worker.bot]).execute([{type:'setblock',position:{x:0,y:64,z:0},block:'stone'}],{signal:control.signal}));
+  // Compare the cancellation reason itself, including Node 20's DOMException.
+  const cancelled = await new ParallelFastExecutor([worker.bot]).execute([{type:'setblock',position:{x:0,y:64,z:0},block:'stone'}],{signal:control.signal}).then(() => undefined, (reason: unknown) => reason);
+  t.is(cancelled, control.signal.reason);
   t.is(worker.sent.length,0);
 });
 
