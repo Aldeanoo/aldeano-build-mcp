@@ -2,7 +2,7 @@ import type mineflayer from 'mineflayer';
 import type { BotOrGetter } from '../services/types.js';
 import { resolveBot } from '../services/service-utils.js';
 import type { RegionBounds } from '../build/build-types.js';
-import { BuildLimitError, regionVolume } from '../build/build-types.js';
+import { enforceScanLimit } from './scan-limits.js';
 import type { BlockReader } from './block-reader.js';
 import { Heightmap } from './heightmap.js';
 import type { RegionScanResult, WorldDetailLevel, WorldEntity } from './world-types.js';
@@ -15,8 +15,7 @@ export class RegionScanner {
   private get bot(): mineflayer.Bot { return resolveBot(this.botOrGetter); }
 
   scan(bounds: RegionBounds, detail: WorldDetailLevel = 'summary'): RegionScanResult {
-    const volume = regionVolume(bounds);
-    if (volume > this.maxBlocks) throw new BuildLimitError(`Scan volume ${volume} exceeds configured maximum of ${this.maxBlocks}`);
+    const volume = enforceScanLimit(bounds, this.maxBlocks);
     const palette: Record<string, number> = {};
     const blocks = [] as NonNullable<RegionScanResult['blocks']>;
     const interestingBlocks = [] as RegionScanResult['interestingBlocks'];
@@ -31,7 +30,7 @@ export class RegionScanner {
       samples.set(block.name, list);
       if (INTERESTING.test(block.name) && interestingBlocks.length < 256) interestingBlocks.push(block);
     }
-    const map = new Heightmap(this.reader).get(bounds);
+    const map = new Heightmap(this.reader, this.maxBlocks).get(bounds);
     return {
       bounds, detail, scannedBlocks: volume, palette,
       height: { min: map.min, max: map.max }, entities: this.entities(bounds), interestingBlocks,

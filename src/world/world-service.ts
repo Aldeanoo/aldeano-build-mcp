@@ -19,7 +19,7 @@ export class WorldApiService {
   constructor(private readonly botOrGetter: BotOrGetter, maxScanBlocks = 65_536) {
     this.reader = new BlockReader(botOrGetter);
     this.scanner = new RegionScanner(botOrGetter, this.reader, maxScanBlocks);
-    this.heightmap = new Heightmap(this.reader);
+    this.heightmap = new Heightmap(this.reader, maxScanBlocks);
     this.environment = new EnvironmentReader(botOrGetter);
   }
   private get bot(): mineflayer.Bot { return resolveBot(this.botOrGetter); }

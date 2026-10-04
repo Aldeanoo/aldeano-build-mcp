@@ -32,6 +32,34 @@ test('scan-region enforces the configured volume limit', (t) => {
   t.true(error?.message.includes('LIMIT') || error?.message.includes('maximum'));
 });
 
+test('heightmap rejects excess volume before reading any blocks', (t) => {
+  const fake = bot();
+  let reads = 0;
+  fake.blockAt = () => { reads++; return null; };
+  const service = new WorldApiService(fake, 10);
+  t.throws(() => service.getHeightmap({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 }), { message: /maximum/ });
+  t.is(reads, 0);
+});
+
+test('heightmap accepts the inclusive limit and normalizes reversed corners', (t) => {
+  const service = new WorldApiService(bot(), 27);
+  const result = service.getHeightmap({ x: 2, y: 64, z: 2 }, { x: 0, y: 62, z: 0 });
+  t.is(result.columns.length, 9);
+  t.is(result.min, 63);
+  t.is(result.max, 63);
+});
+
+test('world scans reject unsafe coordinates without invoking the reader', (t) => {
+  const fake = bot();
+  let reads = 0;
+  fake.blockAt = () => { reads++; return null; };
+  const service = new WorldApiService(fake);
+  const point = { x: Number.MAX_SAFE_INTEGER + 1, y: 64, z: 0 };
+  t.throws(() => service.getHeightmap(point, point));
+  t.throws(() => service.getRegion(point, point));
+  t.is(reads, 0);
+});
+
 test('world screenshot produces a valid PNG without a browser renderer', (t) => {
   const world = new WorldApiService(bot(), 1_000);
   const result = new WorldScreenshotRenderer(world).capture({ from: { x: -1, y: 62, z: -1 }, to: { x: 1, y: 64, z: 1 } }, 320, 240);

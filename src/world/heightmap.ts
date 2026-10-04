@@ -1,11 +1,13 @@
 import type { RegionBounds } from '../build/build-types.js';
 import type { BlockReader } from './block-reader.js';
 import type { HeightmapResult } from './world-types.js';
+import { enforceScanLimit } from './scan-limits.js';
 
 export class Heightmap {
-  constructor(private readonly reader: BlockReader) {}
+  constructor(private readonly reader: BlockReader, private readonly maxBlocks = 65_536) {}
 
   get(bounds: RegionBounds): HeightmapResult {
+    enforceScanLimit(bounds, this.maxBlocks);
     const columns: HeightmapResult['columns'] = [];
     let min: number | null = null; let max: number | null = null;
     for (let x = bounds.from.x; x <= bounds.to.x; x += 1) for (let z = bounds.from.z; z <= bounds.to.z; z += 1) {
