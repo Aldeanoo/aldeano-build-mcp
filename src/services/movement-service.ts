@@ -39,6 +39,13 @@ export class MovementService {
     return {success:true,position:{x,y,z},message:`Teleported to (${x}, ${y}, ${z}) and confirmed destination clearance`};
   }
 
+  async teleportToPlayer(name:string): Promise<MovementResult> {
+    this.flight.stop();
+    await new BoundedTeleportService(this.botOrGetter).selfToPlayer(name);
+    const position = this.getPosition();
+    return {success:true,position,message:`Arrived near ${name} and checked clearance`};
+  }
+
   stop(): void {
     this.flight.stop();
     const bot = this.getBot();

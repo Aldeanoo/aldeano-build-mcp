@@ -18,6 +18,8 @@ export function registerPositionTools(
     x:z.coerce.number().int(), y:z.coerce.number().int(), z:z.coerce.number().int()
   }, async ({x,y,z}:{x:number;y:number;z:number}) => factory.createResponse(JSON.stringify(await movementService.teleportTo(x,y,z))));
 
+  factory.registerTool('movement.teleport-player','Creative self-teleport near an online player with server-side destination clearance predicates and confirmed arrival. Requires command permission.',{name:z.string().regex(/^[a-zA-Z0-9_]{1,16}$/)},async({name}:{name:string})=>factory.createResponse(JSON.stringify(await movementService.teleportToPlayer(name))));
+
   factory.registerTool(
     "get-position",
     "Get the current position of the bot",

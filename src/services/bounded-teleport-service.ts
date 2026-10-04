@@ -18,7 +18,34 @@ export class BoundedTeleportService {
     if (!/^[a-zA-Z0-9_]{1,16}$/.test(name)) throw new TeleportError('Invalid player name');
     const key = Object.keys(bot.players).find(player => player.toLowerCase() === name.toLowerCase());
     const entity = key ? bot.players[key]?.entity : undefined;
-    if (!entity) throw new TeleportError('Player position is unavailable; provide a known safe coordinate');
+    if (!entity) {
+      if (!key) throw new TeleportError('Player is not online');
+      if (bot.game.gameMode !== 'creative') throw new TeleportError('Teleport positioning requires creative mode');
+      signal?.throwIfAborted();
+      bot.pathfinder?.stop();bot.clearControlStates?.();bot.creative?.startFlying?.();
+      await new Promise<void>((resolve,reject)=>{
+        const cleanup=()=>{clearTimeout(timer);bot.removeListener('forcedMove',arrived);bot.removeListener('end',ended);signal?.removeEventListener('abort',aborted);};
+        const arrived=()=>{cleanup();resolve();};
+        const ended=()=>{cleanup();reject(new TeleportError('Disconnected during player teleport'));};
+        const aborted=()=>{cleanup();reject(signal?.reason ?? new TeleportError('Teleport cancelled'));};
+        const timer=setTimeout(()=>{cleanup();reject(new TeleportError('Player teleport not confirmed; destination blocked or command permission denied'));},this.timeoutMs);
+        bot.once('forcedMove',arrived);bot.once('end',ended);signal?.addEventListener('abort',aborted,{once:true});
+        // The server resolves the player's position; predicates prevent landing in solid blocks.
+        for(const feet of air)for(const head of air)bot.chat(`/execute at ${key} positioned ~ ~2 ~ if block ~ ~ ~ minecraft:${feet} if block ~ ~1 ~ minecraft:${head} run tp @s ~ ~ ~`);
+      });
+      await bot.waitForChunksToLoad();await bot.waitForTicks(2);
+      await new Promise<void>((resolve,reject)=>{
+        const started=Date.now();
+        const poll=setInterval(()=>{
+          const target=bot.players[key]?.entity;
+          if(target && bot.entity.position.distanceTo(target.position)<=5){clearInterval(poll);resolve();}
+          else if(Date.now()-started>8000){clearInterval(poll);reject(new TeleportError('Arrival near player could not be confirmed'));}
+        },50);
+      });
+      for(const dy of [0,1]){const block=bot.blockAt(bot.entity.position.offset(0,dy,0));if(!block || !air.includes(block.name))throw new TeleportError('Player teleport destination is not clear');}
+      bot.creative?.startFlying?.();
+      return;
+    }
     const position = entity.position.floored().offset(0, 2, 0);
     await this.selfTo({ x: position.x, y: position.y, z: position.z }, signal);
   }

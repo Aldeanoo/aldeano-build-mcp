@@ -1,5 +1,9 @@
 # MCP Tools
 
+## Lettering
+
+`text.preview`, `text.place`, `text.write-book`, `text.give-book`, `text.verify` and `text.status` provide readable, bounded lettering for signs, books, text displays and block glyphs. Books always use dark ink, never white. See [formatting, placement, readback and migration](LETTERING.md). `movement.teleport-player` provides bounded creative positioning near an online player.
+
 See [the construction reliability v2 migration](BUILD_RELIABILITY.md) for additive `movement.teleport`, `build.roof`, `build.blueprint.v2`, `build.checkpoints` and `build.recover`, plus verified versus submitted result semantics. Existing input schemas remain available.
 
 ## Build

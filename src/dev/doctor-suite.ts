@@ -78,7 +78,7 @@ async function startIsolatedServer(root: string, directory: string, signal: Abor
     'view-distance=6', 'simulation-distance=3', 'max-players=8', 'enable-rcon=false',
     'enable-command-block=false', 'sync-chunk-writes=true'
   ].join('\n') + '\n', 'utf8');
-  writeFileSync(path.join(serverDirectory, 'ops.json'), JSON.stringify(['BenchmarkBot', 'ParallelTestBot', 'SmokeBot'].map(name => ({ uuid: offlineUuid(name), name, level: 4, bypassesPlayerLimit: false }))), 'utf8');
+  writeFileSync(path.join(serverDirectory, 'ops.json'), JSON.stringify(['BenchmarkBot', 'ParallelTestBot', 'SmokeBot', 'LetteringTestBot'].map(name => ({ uuid: offlineUuid(name), name, level: 4, bypassesPlayerLimit: false }))), 'utf8');
   const child = spawn('java', ['-Xms256M', '-Xmx768M', '-jar', jar, '--nogui'], { cwd: serverDirectory, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
   const log = createWriteStream(path.join(directory, 'minecraft-server.log'));
   child.stdout?.pipe(log, { end: false }); child.stderr?.pipe(log, { end: false });

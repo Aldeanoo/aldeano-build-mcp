@@ -3,6 +3,7 @@ import type mineflayer from 'mineflayer';
 import { Vec3 } from 'vec3';
 import { BoundedTeleportService } from '../../src/services/bounded-teleport-service.js';
 import { BuildPreflight } from '../../src/build/verification/build-preflight.js';
+import { EventEmitter } from 'node:events';
 
 function mock(occupied = false): mineflayer.Bot {
   const state = { position: new Vec3(0, 0, 0) };
@@ -31,4 +32,22 @@ test('preflight accepts direct positioning without invoking flight or walking', 
   t.true(result.clear);
   t.is(result.scannedBlocks, 36);
   t.is(destinations.length, 2);
+});
+
+test('remote player teleport resolves an online name and waits for entity visibility',async t=>{
+  const emitter=new EventEmitter();
+  const commands:string[]=[];
+  let arrived=false;
+  const state={position:new Vec3(0,0,0)};
+  const players:{Aldeano_:{entity?:{position:Vec3}}}={Aldeano_:{}};
+  const bot=Object.assign(emitter,{entity:state,players,game:{gameMode:'creative'},blockAt:()=>({name:'air'}),waitForChunksToLoad:async()=>{},waitForTicks:async()=>{},chat:(command:string)=>{
+    commands.push(command);
+    if(!arrived){arrived=true;setTimeout(()=>{state.position=new Vec3(100,66,100);emitter.emit('forcedMove');setTimeout(()=>{players.Aldeano_.entity={position:new Vec3(100,64,100)};},20);},0);}
+  }}) as unknown as mineflayer.Bot;
+  await new BoundedTeleportService(bot,1000).selfToPlayer('aldeano_');
+  t.is(commands.length,9);
+  t.true(commands.every(command=>command.includes('at Aldeano_ positioned ~ ~2 ~ if block')));
+  t.is(emitter.listenerCount('forcedMove'),0);
+  t.is(emitter.listenerCount('end'),0);
+  await t.throwsAsync(new BoundedTeleportService(bot).selfToPlayer('Aldeano_;kill'),{message:'Invalid player name'});
 });

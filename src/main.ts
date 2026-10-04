@@ -27,6 +27,8 @@ import { BuildService } from './build/build-service.js';
 import { WorldApiService } from './world/world-service.js';
 import { LocationMemory } from './world/locations/location-memory.js';
 import { NavigationService } from './world/navigation-service.js';
+import { LetteringService } from './services/lettering/lettering-service.js';
+import { registerLetteringTools } from './tools/lettering-tools.js';
 
 setupStdioFiltering();
 
@@ -75,6 +77,7 @@ async function main() {
   registerCraftingTools(factory, services.crafting);
   registerFurnaceTools(factory, services.furnace);
   registerBuildTools(factory, buildService);
+  registerLetteringTools(factory, new LetteringService(getBot, buildService));
   registerWorldTools(factory, worldApi);
   registerLocationTools(factory, locations, navigation);
 
