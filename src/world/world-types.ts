@@ -8,19 +8,29 @@ export interface WorldBlock {
   state?: Record<string, unknown>;
 }
 
+export interface WorldReadCoverage {
+  version: 1;
+  requestedBlocks: number;
+  readBlocks: number;
+  unavailableBlocks: number;
+  complete: boolean;
+}
+
 export interface HeightmapResult {
   bounds: RegionBounds;
   min: number | null;
   max: number | null;
-  columns: Array<{ x: number; z: number; y: number | null; block?: string }>;
+  coverage: WorldReadCoverage;
+  columns: Array<{ x: number; z: number; y: number | null; block?: string; readBlocks: number; unavailableBlocks: number; status: 'complete' | 'partial' | 'unavailable'; heightKnown: boolean }>;
 }
 
 export interface RegionScanResult {
   bounds: RegionBounds;
   detail: WorldDetailLevel;
   scannedBlocks: number;
+  coverage: WorldReadCoverage;
   palette: Record<string, number>;
-  height: { min: number | null; max: number | null };
+  height: { min: number | null; max: number | null; complete: boolean };
   entities: WorldEntity[];
   interestingBlocks: WorldBlock[];
   blocks?: WorldBlock[];

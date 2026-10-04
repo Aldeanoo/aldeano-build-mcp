@@ -68,3 +68,36 @@ test('world screenshot produces a valid PNG without a browser renderer', (t) => 
   t.is(result.height, 240);
   t.true(result.renderedBlocks > 0);
 });
+
+test('scans distinguish unavailable blocks from loaded air and read each position once', (t) => {
+  for (const detail of ['summary', 'compact', 'full'] as const) {
+    const fake = bot();
+    let reads = 0;
+    fake.blockAt = () => { reads++; return null; };
+    const result = new WorldApiService(fake, 27).scanRegion({ x: 0, y: 63, z: 0 }, 1, detail);
+    t.is(reads, 27);
+    t.is(result.scannedBlocks, 27);
+    t.deepEqual(result.coverage, { version: 1, requestedBlocks: 27, readBlocks: 0, unavailableBlocks: 27, complete: false });
+    t.deepEqual(result.palette, {});
+    t.false(result.height.complete);
+    const loaded = new WorldApiService(bot(), 27).scanRegion({ x: 0, y: 65, z: 0 }, 1, detail);
+    t.true(loaded.coverage.complete);
+    t.is(loaded.palette.air, 27);
+    t.true(loaded.height.complete);
+    t.is(loaded.height.max, null);
+  }
+});
+
+test('height certainty depends on missing blocks above the observed surface', (t) => {
+  for (const missingY of [62, 64]) {
+    const fake = bot();
+    const original = fake.blockAt.bind(fake);
+    fake.blockAt = (position) => position.y === missingY ? null : original(position);
+    const result = new WorldApiService(fake, 3).getHeightmap({ x: 0, y: 62, z: 0 }, { x: 0, y: 64, z: 0 });
+    t.false(result.coverage.complete);
+    t.is(result.coverage.readBlocks, 2);
+    t.is(result.columns[0].status, 'partial');
+    t.is(result.columns[0].y, 63);
+    t.is(result.columns[0].heightKnown, missingY === 62);
+  }
+});
