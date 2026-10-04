@@ -47,8 +47,24 @@ if (!enabled) {
       t.is((occupied as BuildPreflightError).code, 'SITE_OCCUPIED');
 
       const fault = start.offset(4, 2, 0);
-      bot.chat(`/setblock ${fault.x} ${fault.y} ${fault.z} minecraft:dirt replace`);
-      await bot.waitForTicks(4);
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          clearTimeout(timer);
+          bot.removeListener('blockUpdate', onUpdate);
+        };
+        const onUpdate: mineflayer.BotEvents['blockUpdate'] = (_previous, current) => {
+          if (current?.position.equals(fault) && current.name === 'dirt') {
+            cleanup();
+            resolve();
+          }
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error(`No dirt block update received at ${fault} within 5s`));
+        }, 5000);
+        bot.on('blockUpdate', onUpdate);
+        bot.chat(`/setblock ${fault.x} ${fault.y} ${fault.z} minecraft:dirt replace`);
+      });
       const damaged = service.verify(result.buildId);
       t.is(damaged.incorrect, 1);
       t.is(damaged.accuracy, 49 / 50);
