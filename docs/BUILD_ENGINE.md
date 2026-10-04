@@ -8,6 +8,8 @@ The build engine turns deterministic block lists into ordered, bounded Minecraft
 
 `BuildService` owns build IDs, progress, cancellation, pause/resume, history, limits and metrics. MCP handlers only validate input and serialize its results.
 
+Primitive tools check configured dimensions and candidate volume before generating placements. Exact line, wall, floor, column and box counts are checked before allocation; spheres, cylinders and detailed roofs stop before exceeding `min(BUILD_MAX_BLOCKS, BUILD_MAX_QUEUE)`. Hollow boxes use their shell count, not the solid volume. Candidate work is bounded by `BUILD_PREFLIGHT_MAX_BLOCKS`, including air in hollow shapes. Custom limits remain supported; tool inputs are unchanged. Core primitive helpers accept an optional final limits argument for scripts that also need bounded generation.
+
 ## Site preflight and validation choice
 
 Every construction operation has a mandatory preflight. The bot travels to the site, loads the nearby chunks and inspects the complete planned bounding box internally. Placement starts only when every position is readable and empty. Occupied and unavailable sites return compact `SITE_OCCUPIED` and `SITE_UNAVAILABLE` errors. Region editing operations are exempt because their purpose is to modify existing blocks.

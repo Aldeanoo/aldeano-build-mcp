@@ -1,6 +1,9 @@
 import type { BlockPlacement, BlockPosition } from '../build-types.js';
+import { checkGenerationBounds, checkGenerationCount, type PrimitiveGenerationLimits } from './generation-limits.js';
 
-export function buildLine(from: BlockPosition, to: BlockPosition, block: string): BlockPlacement[] {
+export function buildLine(from: BlockPosition, to: BlockPosition, block: string, limits?: PrimitiveGenerationLimits): BlockPlacement[] {
+  checkGenerationBounds(from, to, limits);
+  checkGenerationCount(Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y), Math.abs(to.z - from.z)) + 1, limits);
   let x1 = Math.floor(from.x); let y1 = Math.floor(from.y); let z1 = Math.floor(from.z);
   const x2 = Math.floor(to.x); const y2 = Math.floor(to.y); const z2 = Math.floor(to.z);
   const dx = Math.abs(x2 - x1); const dy = Math.abs(y2 - y1); const dz = Math.abs(z2 - z1);

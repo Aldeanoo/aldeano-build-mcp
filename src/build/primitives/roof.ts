@@ -1,6 +1,7 @@
 import type { BlockPlacement, BlockPosition } from '../build-types.js';
 import { BuildValidationError, normalizeBounds, positionKey } from '../build-types.js';
 import { validateDesign } from '../verification/design-validator.js';
+import { checkGenerationBounds, checkGenerationCount, type PrimitiveGenerationLimits } from './generation-limits.js';
 
 export interface RoofOptions {
   style?: 'flat' | 'gable' | 'hip';
@@ -14,11 +15,11 @@ export interface RoofOptions {
 }
 
 /** Legacy entry point now closes gable ends; its input schema is unchanged. */
-export function buildRoof(from: BlockPosition, to: BlockPosition, block: string, axis: 'x' | 'z' = 'x'): BlockPlacement[] {
-  return buildRoofDetailed(from, to, block, { axis });
+export function buildRoof(from: BlockPosition, to: BlockPosition, block: string, axis: 'x' | 'z' = 'x', limits?: PrimitiveGenerationLimits): BlockPlacement[] {
+  return buildRoofDetailed(from, to, block, { axis }, limits);
 }
 
-export function buildRoofDetailed(from: BlockPosition, to: BlockPosition, block: string, options: RoofOptions = {}): BlockPlacement[] {
+export function buildRoofDetailed(from: BlockPosition, to: BlockPosition, block: string, options: RoofOptions = {}, limits?: PrimitiveGenerationLimits): BlockPlacement[] {
   if (![from.x,from.y,from.z,to.x,to.y,to.z].every(Number.isSafeInteger)) throw new BuildValidationError('INVALID_POSITION', 'Roof coordinates must be integers');
   const bounds = normalizeBounds(from, to), style = options.style ?? 'gable', axis = options.axis ?? 'x';
   const overhang = options.overhang ?? 0, thickness = options.thickness ?? 1;
@@ -27,10 +28,13 @@ export function buildRoofDetailed(from: BlockPosition, to: BlockPosition, block:
   const maxDistance = style === 'hip' ? Math.floor(Math.min(x1-x0,z1-z0)/2) : Math.floor((axis === 'x' ? z1-z0 : x1-x0)/2);
   const rise = style === 'flat' ? 0 : options.height ?? maxDistance;
   if (!Number.isInteger(rise) || rise < 0 || rise > maxDistance) throw new BuildValidationError('INVALID_ROOF', `Roof rise must be 0–${maxDistance}; steeper slopes would create gaps`);
-  if ((x1-x0+1)*(z1-z0+1)*(rise+thickness+1) > 1_000_000) throw new BuildValidationError('LIMIT_EXCEEDED', 'Roof generation exceeds one million candidate blocks');
+  checkGenerationBounds({ x: x0, y: baseY - thickness + 1, z: z0 }, { x: x1, y: baseY + rise, z: z1 }, limits);
+  checkGenerationCount((x1 - x0 + 1) * (z1 - z0 + 1) * thickness, limits);
+  if (!limits && (x1-x0+1)*(z1-z0+1)*(rise+thickness+1) > 1_000_000) throw new BuildValidationError('LIMIT_EXCEEDED', 'Roof generation exceeds one million candidate blocks');
   const final = new Map<string, BlockPlacement>();
   const add = (x:number,y:number,z:number,material:string,state?:BlockPlacement['state']) => {
     const p = { position:{x,y,z},block:material,state,category:'roof' as const };
+    if (!final.has(positionKey(p.position))) checkGenerationCount(final.size + 1, limits);
     final.set(positionKey(p.position),p);
   };
   for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++) {
