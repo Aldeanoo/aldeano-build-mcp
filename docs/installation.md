@@ -1,4 +1,39 @@
-# Instalación y primera conexión
+# Instalar Aldeano Build MCP
+
+## La forma fácil: pídeselo a tu IA
+
+Copia y pega el siguiente texto en el asistente de IA de tu editor o terminal de código. Necesita poder leer archivos y ejecutar comandos para ayudarte a configurarlo. Es un mensaje para la IA, no un comando de PowerShell o Bash.
+
+```text
+Quiero instalar Aldeano Build MCP para usar una IA en Minecraft Java:
+https://github.com/Aldeanoo/aldeano-build-mcp
+
+Descarga el repositorio si aún no está en mi ordenador. Lee AGENTS.md y
+la guía docs/installation.md antes de configurar nada.
+
+Comprueba mi sistema y si tengo Git, Node.js y Java compatibles.
+Ayúdame a instalar lo que falte y ejecuta npm ci en la carpeta del proyecto.
+Si estoy en PowerShell y npm.ps1 está bloqueado, utiliza npm.cmd.
+
+Pregúntame qué asistente de IA quiero conectar y si voy a usar el servidor
+local incluido, un servidor existente o un mundo abierto a LAN.
+Configura el MCP para ese cliente con la ruta absoluta a dist/main.js
+y la dirección, puerto, versión y autenticación de mi Minecraft.
+
+Si elijo el servidor local, muéstrame la EULA de Minecraft y espera a que
+la acepte antes de ejecutar npm run mc:setup -- --accept-eula.
+Ayúdame a arrancarlo y a conectar el bot. Si necesito iniciar sesión,
+indícame cómo hacerlo yo.
+
+Comprueba la conexión con una consulta de posición, sin construir nada.
+Al terminar, dime en palabras sencillas cómo entrar al mundo, cómo usar
+el asistente y cómo detener el servidor. Si algo falla, revisa el error
+y ayúdame a solucionarlo sin borrar mis mundos.
+```
+
+La IA te irá guiando según tu ordenador y el cliente que uses. Tú tendrás que aceptar la EULA si usas el servidor incluido y completar cualquier inicio de sesión que haga falta. Si prefieres instalarlo por tu cuenta, sigue los pasos de abajo.
+
+## Instalación manual paso a paso
 
 Esta es la guía de instalación desde el código fuente. No necesitas una cuenta de IA para comprobar el bot con la shell. Para controlarlo desde una IA necesitas un cliente que admita servidores MCP por stdio.
 
