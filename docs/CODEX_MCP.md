@@ -1,39 +1,61 @@
-# Usar Aldeano Build MCP desde Codex
+﻿# Conectar Aldeano Build MCP a Codex
 
-## Preparación
+## Copia y pega esto en tu IA
 
-1. Abre Minecraft Java y el mundo en LAN, puerto **9999**. Para construcción rápida, habilita comandos y modo creativo.
-2. En este repositorio ejecuta `npm install` y `npm run build`.
-3. Registra el servidor local:
+Pega este mensaje en Codex, dentro de tu editor o terminal de código. Es una instrucción para la IA, no un comando de PowerShell o Bash:
 
-```powershell
-codex mcp add aldeano-build --env BUILD_MODE=fast --env BUILD_FAST_MODE_ENABLED=true --env BUILD_VERIFY=false --env BUILD_AUTO_REPAIR=false -- node C:\Users\Aldea\Desktop\Aldeano-Build-MCP\dist\main.js --host 127.0.0.1 --port 9999 --username CodexBuilder
-codex mcp get aldeano-build
+```text
+Configura Aldeano Build MCP para usarlo desde Codex:
+https://github.com/Aldeanoo/aldeano-build-mcp
+
+Lee AGENTS.md, docs/installation.md y docs/CODEX_MCP.md.
+Comprueba Git, Node y Java, descarga el proyecto si hace falta y ejecuta
+npm ci (npm.cmd en PowerShell si npm.ps1 está bloqueado).
+
+Pregúntame si usaré el servidor local incluido o un mundo abierto a LAN.
+Usa la ruta absoluta real de dist/main.js y el host y puerto de mi mundo.
+En LAN, pídeme el puerto que Minecraft muestra al abrir el mundo.
+Si uso el servidor incluido, muéstrame la EULA y espera mi aceptación
+antes de prepararlo. Conserva mis mundos y mi configuración existente.
+
+Registra el servidor stdio con codex mcp add. Si ya existe ese nombre,
+revisa su configuración antes de cambiarlo. Comprueba codex mcp list,
+explícame cómo recargar Codex y prueba world.get-environment para
+confirmar la conexión sin construir ni borrar bloques.
 ```
 
-Abre una nueva sesión de Codex para cargar las herramientas registradas. La configuración de un servidor no añade herramientas automáticamente a una conversación que ya está abierta. Si cambia el puerto LAN, actualiza el registro.
+## Registro manual
 
-## Flujo de construcción
+Completa primero la [instalación](installation.md). Ejecuta desde la carpeta del repositorio, con Minecraft arrancado. El puerto del servidor incluido suele ser 25565; en LAN usa el que muestra Minecraft, que puede cambiar cada vez.
 
-- Lee el encargo desde `C:\Users\Aldea\Desktop\plan.txt` con UTF-8. Investiga referencias y diseña antes de ejecutar.
-- En esta sesión, el usuario solicita teletransporte para todos los desplazamientos de los bots en fast/creative; no caminar al sitio. Mantén destinos acotados, comprueba la llegada y los datos de bloques. Nunca añadas una herramienta de comandos arbitrarios.
-- Inspecciona obligatoriamente el volumen del sitio mediante datos de bloques. Solo aire cuenta como vacío; posiciones no cargadas no cuentan como libres.
-- Usa `world.scan-region` con `detail: "summary"`; evita respuestas `full` salvo necesidad concreta.
-- Usa `build.preview`, luego `build.blueprint` con un diseño estructurado y `verifyAfterBuild` explícito. La configuración anterior desactiva la revisión por defecto; un encargo que pide revisión puede activarla.
-- Consulta `check-build` mediante el ID devuelto; usa `build.pause`, `build.resume` y `build.cancel` según sea necesario.
-- No solicites PNG salvo petición explícita de imágenes o revisión visual.
-- Para megaestructuras, divide el diseño en secciones que respeten los límites configurados. El registro anterior conserva los límites del core: no permite enviar cualquier tamaño sin planificación.
-- Mantén coordenadas, compresión, colas y reintentos en el motor. Dedica el contexto del modelo a investigación y diseño, no a miles de comandos individuales.
-- Los scripts paralelos existentes usan conexiones independientes y regiones exclusivas. Registrar el MCP no convierte automáticamente `build.blueprint` en el ejecutor paralelo de esos scripts.
+PowerShell:
 
-## Herramientas principales
+```powershell
+$mcpEntry = (Resolve-Path './dist/main.js').Path
+$minecraftHost = Read-Host 'Host de Minecraft (127.0.0.1 si está en este ordenador)'
+$minecraftPort = Read-Host 'Puerto que muestra Minecraft o tu servidor'
+codex mcp add aldeano-build -- node "$mcpEntry" --host "$minecraftHost" --port "$minecraftPort" --username MCPBot
+codex mcp list
+```
 
-`world.scan-region`, `world.get-block`, `world.get-environment`, `build.preview`, `build.blueprint`, `build-wall`, `build-floor`, `build-hollow-box`, `check-build`, `verify-build`, `repair-build`, `build.history`.
+Bash (macOS/Linux):
 
-El plan del esqueleto requiere rotulación, circulación a distintas alturas y revisión anatómica. La instalación del MCP por sí sola no construye el modelo ni certifica su precisión anatómica.
+```bash
+mcp_entry="$(pwd)/dist/main.js"
+read -r -p 'Host de Minecraft (127.0.0.1 si es local): ' minecraft_host
+read -r -p 'Puerto de Minecraft: ' minecraft_port
+codex mcp add aldeano-build -- node "$mcp_entry" --host "$minecraft_host" --port "$minecraft_port" --username MCPBot
+codex mcp list
+```
 
-## Diagnóstico
+`codex mcp --help` muestra las opciones de tu versión. La sintaxis de registro y los servidores stdio están descritos en la [documentación oficial de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli). Para entornos con rutas distintas, resuelve la ruta desde el ordenador donde se ejecutará el proceso MCP.
 
-`codex mcp get aldeano-build` confirma el registro; no confirma conexión a Minecraft. Comprueba la conexión con `world.get-environment` en una sesión con las herramientas cargadas. Si falta conexión, revisa Minecraft abierto, puerto LAN, permisos y nombre del bot.
+Recarga Codex o inicia una nueva sesión; en la terminal interactiva puedes consultar `/mcp`. En la extensión del editor, añade un servidor stdio desde sus ajustes MCP y reinicia la extensión. Usa `node` como comando y los mismos argumentos con la ruta absoluta real; el cliente inicia el proceso MCP. Consulta `docs/installation.md` para las limitaciones actuales de versión y autenticación antes de conectar otros servidores.
 
-Referencia de configuración: https://learn.chatgpt.com/docs/extend/mcp?surface=cli
+## Comprobar y construir
+
+Que aparezca en `codex mcp list` confirma el registro. Para comprobar Minecraft, pide `world.get-environment`. Si falla, revisa host, puerto, servidor abierto y que otro proceso no use el mismo nombre de bot.
+
+Antes de construir, inspecciona con `world.scan-region` en modo `summary`, revisa su cobertura y usa `build.preview`. Las posiciones no disponibles no son aire. Pide a la IA un diseño y especifica si quieres validación posterior; consulta `check-build` con el ID devuelto. El modo físico es el predeterminado; la [guía de instalación](installation.md#construcción-rápida-y-tp-creativo-opcionales) explica cómo activar el modo rápido cuando lo necesites.
+
+Las notas históricas del proyecto de anatomía están en [su carpeta de proyecto](../projects/anatomy/docs/codex-session-notes.md); contienen decisiones de aquella sesión, no requisitos de instalación general.

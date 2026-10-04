@@ -111,6 +111,8 @@ Prueba `pos` y `inv`; usa `quit` para desconectar. No arranques a la vez la shel
 
 ## Conectar un cliente MCP
 
+Si utilizas Codex, sigue la [guía de conexión a Codex](CODEX_MCP.md), con un mensaje listo para copiar y comandos que resuelven tu ruta real.
+
 Configura en tu cliente un servidor stdio con:
 
 - Comando: `node`, o la ruta absoluta al ejecutable Node si el cliente no lo encuentra.
