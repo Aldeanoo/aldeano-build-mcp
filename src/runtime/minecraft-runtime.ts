@@ -112,12 +112,10 @@ export class MinecraftRuntime {
   async connect(options?: Partial<BotSessionConfig>): Promise<BotSession> {
     if (options && Object.keys(options).length > 0) {
       const mergedConfig = this.resolveConfig({ ...this.currentConfig, ...options });
-      // If config changed, disconnect existing if connected and create new manager
-      if (
-        mergedConfig.host !== this.currentConfig.host ||
-        mergedConfig.port !== this.currentConfig.port ||
-        mergedConfig.username !== this.currentConfig.username
-      ) {
+      // Every effective option belongs to the manager/session configuration.
+      const configChanged = (Object.keys(mergedConfig) as Array<keyof BotSessionConfig>)
+        .some((key) => mergedConfig[key] !== this.currentConfig[key]);
+      if (configChanged) {
         await this.disconnect();
         this.currentConfig = mergedConfig;
         this.connectionManager = new ConnectionManager({

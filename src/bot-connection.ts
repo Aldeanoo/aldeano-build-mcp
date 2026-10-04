@@ -106,11 +106,8 @@ export class BotConnection {
     bot.on('end', (reason) => {
       this.callbacks.onLog('info', `Bot disconnected: ${this.formatError(reason)}`);
 
-      if (this.state === 'connected') {
-        this.state = 'disconnected';
-      }
-
       if (this.bot === bot) {
+        this.state = 'disconnected';
         try {
           bot.removeAllListeners();
           this.bot = null;

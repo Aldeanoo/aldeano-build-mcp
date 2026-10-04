@@ -332,7 +332,6 @@ export class BotSession {
 
     if (this.botInstance) {
       try {
-        this.botInstance.removeAllListeners();
         if (typeof this.botInstance.quit === 'function') {
           this.botInstance.quit(reason);
         }

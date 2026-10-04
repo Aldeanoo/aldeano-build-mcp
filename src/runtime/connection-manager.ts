@@ -39,6 +39,7 @@ export class ConnectionManager {
 
   // Active connection promise to de-duplicate simultaneous connect() calls
   private activeConnectPromise: Promise<BotSession> | null = null;
+  private botListenerCleanup: Array<() => void> = [];
 
   constructor(options: ConnectionManagerOptions) {
     this.config = { ...options.config };
@@ -173,13 +174,21 @@ export class ConnectionManager {
         const session = new BotSession(this.config, bot);
         this.session = session;
 
-        bot.once('login', () => {
+        const listen = <K extends keyof mineflayer.BotEvents>(
+          event: K, listener: mineflayer.BotEvents[K], once = false,
+        ) => {
+          if (once) bot.once(event, listener);
+          else bot.on(event, listener);
+          this.botListenerCleanup.push(() => bot.removeListener(event, listener));
+        };
+
+        listen('login', () => {
           log('info', `Bot logged in to server (${this.config.host}:${this.config.port})`);
           this.setStatus(ConnectionStatus.CONNECTED);
           this.startPingMonitor();
-        });
+        }, true);
 
-        bot.once('spawn', () => {
+        listen('spawn', () => {
           log('info', `Bot spawned in Minecraft world as "${this.config.username}"`);
           clearAllTimers();
           session.initPathfinder();
@@ -192,21 +201,21 @@ export class ConnectionManager {
             isSettled = true;
             resolve(session);
           }
-        });
+        }, true);
 
-        bot.on('chat', (username, message) => {
+        listen('chat', (username, message) => {
           if (username === bot.username) return;
           this.events.emit('chat', username, message, false);
         });
 
-        bot.on('kicked', (reason) => {
+        listen('kicked', (reason) => {
           const formattedReason = this.formatError(reason);
           log('warn', `Bot kicked from server: ${formattedReason}`);
           this.lastError = `Kicked: ${formattedReason}`;
           this.handleDisconnectOrReconnect(`Kicked: ${formattedReason}`);
         });
 
-        bot.on('error', (err: Error) => {
+        listen('error', (err: Error) => {
           const errorMsg = err?.message || String(err);
           const errorCode = (err as { code?: string }).code;
           this.lastError = errorMsg;
@@ -224,7 +233,7 @@ export class ConnectionManager {
           }
         });
 
-        bot.on('end', (reason) => {
+        listen('end', (reason) => {
           const reasonStr = this.formatError(reason);
           log('info', `Bot connection ended: ${reasonStr}`);
           this.stopPingMonitor();
@@ -359,6 +368,8 @@ export class ConnectionManager {
   }
 
   private cleanupBotInstance(reason: string): void {
+    for (const removeListener of this.botListenerCleanup) removeListener();
+    this.botListenerCleanup = [];
     if (this.session) {
       try {
         this.session.cleanup(reason);
@@ -370,7 +381,6 @@ export class ConnectionManager {
 
     if (this.bot) {
       try {
-        this.bot.removeAllListeners();
         if (typeof this.bot.quit === 'function') {
           this.bot.quit(reason);
         }
