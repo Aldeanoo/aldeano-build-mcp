@@ -13,14 +13,20 @@ function transformMetadata(blueprint:InternalBlueprint,map:(p:BlockPosition)=>Bl
 export type BlueprintTransform = 'translate' | 'rotate90' | 'rotate180' | 'rotate270' | 'mirrorX' | 'mirrorZ';
 
 function remapState(state: BlueprintBlock['state'], quarterTurns: number, mirrorAxis?: 'x' | 'z'): BlueprintBlock['state'] {
-  if (!state?.facing || typeof state.facing !== 'string') return state ? { ...state } : undefined;
+  if (!state) return undefined;
+  const result = { ...state };
+  if (quarterTurns % 2 === 1 && (state.axis === 'x' || state.axis === 'z')) result.axis = state.axis === 'x' ? 'z' : 'x';
+  if (mirrorAxis && typeof state.shape === 'string') {
+    result.shape = ({ inner_left: 'inner_right', inner_right: 'inner_left', outer_left: 'outer_right', outer_right: 'outer_left' } as Record<string, string>)[state.shape] ?? state.shape;
+  }
+  if (typeof state.facing !== 'string') return result;
   const directions = ['north', 'east', 'south', 'west'];
   let facing = state.facing;
   const index = directions.indexOf(facing);
   if (index >= 0) facing = directions[(index + quarterTurns) % 4];
   if (mirrorAxis === 'x') facing = ({ east: 'west', west: 'east' } as Record<string, string>)[facing] ?? facing;
   if (mirrorAxis === 'z') facing = ({ north: 'south', south: 'north' } as Record<string, string>)[facing] ?? facing;
-  return { ...state, facing };
+  return { ...result, facing };
 }
 
 export class BlueprintTransformer {

@@ -18,6 +18,8 @@ Optional block fields are `state`, `category`, `section`, and `dependsOn`. Categ
 
 `BlueprintValidator` checks the schema, dimensions, configured limits, duplicates, coordinates, Minecraft block names and declared dependencies before execution.
 
-`BlueprintTransformer` supports `translate`, `rotate90`, `rotate180`, `rotate270`, `mirrorX`, and `mirrorZ`. Rotation and mirroring also update cardinal `facing` state.
+`BlueprintTransformer` supports `translate`, `rotate90`, `rotate180`, `rotate270`, `mirrorX`, and `mirrorZ`. In the explicit `state` object, rotations and mirrors update cardinal `facing`; odd quarter-turns swap horizontal `axis` (`x`/`z`), preserving `y`; mirrors swap stair `shape` handedness (`inner_left`/`inner_right`, `outer_left`/`outer_right`). Straight stairs and other properties are preserved, and source blueprints are not mutated.
+
+Declare orientation in `state`, rather than embedded in the block name, when transforming a blueprint. Other spatial properties (for example rail shapes, sign rotation, door hinges and directional connection keys) are preserved verbatim and require author adjustment. This is the supported state set, not a general transformation of every Minecraft property.
 
 Use `build.preview` before `build.blueprint` to get dimensions, material counts, the world bounding box, estimated time, warnings, and errors without changing Minecraft.
