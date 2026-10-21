@@ -17,7 +17,7 @@ Las herramientas antiguas mantienen sus esquemas de entrada. Actualiza consumido
 | Herramienta | Entrada / efecto |
 | --- | --- |
 | `movement.teleport` | `x`, `y`, `z` enteros; TP del propio bot exclusivamente en creativo |
-| `build.roof` | `from`, `to`, `block`, `style: flat/gable/hip`, `axis`, `height`, `thickness`, `overhang`, `closeEnds`, `gableBlock`, `ridgeBlock`, `mode`, `verifyAfterBuild` |
+| `build.roof` | `from`, `to`, `block`, `style: flat/gable/hip`, `axis`, `height`, `thickness`, `overhang`, `closeEnds`, `gableBlock`, `ridgeBlock`, `wallTopY`, `wallBlock`, `mode`, `verifyAfterBuild` |
 | `build.blueprint.v2` | `blueprint`, `origin`, `expectedBlocks`, `mode`, `verifyAfterBuild`, `design` opcional |
 | `build.checkpoints` | Lista identificadores persistidos |
 | `build.recover` | `buildId`; inspecciona el sitio guardado y ejecuta solo las posiciones pendientes |
@@ -26,9 +26,23 @@ Reinicia el MCP para registrar las herramientas nuevas después de compilar.
 
 ## Techos y contratos de diseño
 
+La preparación arquitectónica ocurre **antes** del conteo final, el preflight y cualquier colocación. En blueprints de edificios, marca muros con `category: "wall"` y cubiertas con `category: "roof"`. Cuando una columna tiene un muro y su primera cubierta encima, el planificador prolonga el material macizo del muro por la franja que falta, conserva bloques ya definidos y deja hueco el interior. Un cierre que invade `requiredAir` se rechaza antes de construir. Los planos sin categorías no proporcionan intención suficiente para inferir muros: no se adivinan recintos en esculturas ni se cierran automáticamente patios o cubiertas posteriores sin sus propios muros.
+
+`build.roof` añade `wallTopY` (Y del último bloque del muro existente) y `wallBlock` (material del cierre). `from`/`to` delimitan la huella del muro, `from.y` inicia la cubierta y `overhang` extiende solamente el alero. El generador cierra la franja vertical en la huella original, no en el borde exterior del alero. `closeEnds: false` conserva abiertos los triángulos por encima del arranque. Hastiales, respaldo y cumbreras usan materiales macizos derivados del material o seleccionados explícitamente; no tratan una escalera como un cubo completo.
+
+Las losas estructurales se resuelven considerando las superficies de los vecinos: `top` para contactar por arriba, `bottom` por abajo y `double` cuando ambas caras requieren contacto. La resolución es simultánea e independiente del orden de entrada. Las losas dobles no quedan anegadas. Marca una losa `category: "decoration"` para conservar una separación intencional. Esto no es un cálculo de cargas ni añade columnas debajo de elementos aislados.
+
+`requireConnected` utiliza cajas de colisión del estado y versión de Minecraft, con contacto de área positiva; la vecindad entre coordenadas deja de certificar contacto a través de medio bloque vacío. La colocación física de losas usa clics en la mitad solicitada, dos piezas para una losa doble y comprueba el estado devuelto por el servidor. Si otro estado explícito no puede garantizarse en modo físico, falla antes de excavar, en lugar de ignorarlo; fast/cinematic conserva sus estados explícitos.
+
+### Migración de preparación arquitectónica
+
+Las entradas antiguas siguen siendo válidas; `wallTopY` y `wallBlock` son parámetros opcionales nuevos de `build.roof`. `build.preview` y `blueprint.validate` informan el conteo **corregido** y los ajustes en `warnings`. Regenera `expectedBlocks` con ese conteo: un número anterior al cierre se rechaza antes de modificar el mundo. Los checkpoints ya guardados y los planes de transporte no se reinterpretan; conservan su estado final exacto. Los consumidores de bajo nivel de `ParallelFastExecutor` deben llamar a `prepareArchitecture` sobre el plan completo antes de comprimir o dividir en fases; no se corrige una fase aislada que no conoce sus vecinos.
+
+Después de compilar, reinicia el MCP para cargar el planificador y el esquema actualizado. Compilar no sustituye el proceso que ya está ejecutándose.
+
 Los techos cubren cada columna de la huella; los de dos aguas cierran extremos sin rellenar por defecto el interior. Admiten grosor, aleros y orientación de escaleras. La altura se acota según la luz para no introducir saltos verticales. Para escaleras usa un material macizo en `gableBlock` y `ridgeBlock` cuando quieras extremos y cumbrera macizos.
 
-`design` puede exigir `roofBounds`/`roofBaseY`, `requiredSupports`, `requiredAir` y `requireConnected`. La validación previa detecta columnas sin cobertura, soportes ausentes, aperturas obstruidas y componentes desconectados mediante vecindad de seis caras. Es un contrato explícito de geometría voxel, no un simulador universal de física ni una certificación automática de circulación. Las posiciones de `metadata.design` son relativas al blueprint; las de `design` pasado como opción son coordenadas de mundo. El aire exigido debe estar dentro del volumen inspeccionado y también se revisa al finalizar.
+`design` puede exigir `roofBounds`/`roofBaseY`, `requiredSupports`, `requiredAir` y `requireConnected`. La validación previa detecta columnas sin cobertura, soportes ausentes, aperturas obstruidas y componentes desconectados mediante contacto real entre superficies de bloques vecinos. Es un contrato explícito de geometría voxel, no un simulador universal de física ni una certificación automática de circulación. Las posiciones de `metadata.design` son relativas al blueprint; las de `design` pasado como opción son coordenadas de mundo. El aire exigido debe estar dentro del volumen inspeccionado y también se revisa al finalizar.
 
 ## Verificación, reparación y progreso
 

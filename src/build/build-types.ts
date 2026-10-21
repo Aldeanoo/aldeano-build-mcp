@@ -37,6 +37,8 @@ export interface BuildPlan {
   boundingBox: RegionBounds;
   materials: Record<string, number>;
   requiredAir?:BlockPosition[];
+  /** Architectural corrections included in these final, counted placements. */
+  adjustments?: string[];
 }
 
 export interface RegionBounds {

@@ -30,13 +30,14 @@ export class BlockService {
   }
 
   async placeBlock(x: number, y: number, z: number, faceDirection?: FaceDirection): Promise<BlockActionResult>;
-  async placeBlock(name: string, x: number, y: number, z: number, faceDirection?: FaceDirection): Promise<BlockActionResult>;
+  async placeBlock(name: string, x: number, y: number, z: number, faceDirection?: FaceDirection, state?: Record<string, string | number | boolean>): Promise<BlockActionResult>;
   async placeBlock(
     arg1: string | number,
     arg2?: number,
     arg3?: number,
     arg4?: number | FaceDirection,
-    arg5?: FaceDirection
+    arg5?: FaceDirection,
+    requestedState?: Record<string, string | number | boolean>
   ): Promise<BlockActionResult> {
     const bot = this.getBot();
 
@@ -45,6 +46,10 @@ export class BlockService {
     let y: number;
     let z: number;
     let faceDirection: FaceDirection = 'down';
+    const slabType = requestedState?.type;
+    if (slabType !== undefined && (!['top', 'bottom', 'double'].includes(String(slabType)) || typeof arg1 !== 'string' || !arg1.endsWith('_slab'))) {
+      throw new BlockPlacementError('Physical slab placement needs type=top, bottom or double');
+    }
 
     if (typeof arg1 === 'number') {
       x = arg1;
@@ -71,6 +76,7 @@ export class BlockService {
       if (!item) {
         throw new BlockPlacementError(`Item '${name}' not found in inventory`);
       }
+      if (slabType === 'double' && item.count < 2) throw new BlockPlacementError('A double slab requires two slab items');
       if (bot.heldItem?.name !== item.name) {
         await bot.equip(item, 'hand');
       }
@@ -110,6 +116,9 @@ export class BlockService {
     }
 
     for (const face of possibleFaces) {
+      // A vertical click fixes the half: upper face -> bottom slab; lower face -> top slab.
+      if (slabType === 'top' && face.direction === 'down') continue;
+      if ((slabType === 'bottom' || slabType === 'double') && face.direction === 'up') continue;
       const referencePos = placePos.plus(face.vector);
       const referenceBlock = bot.blockAt(referencePos);
 
@@ -122,7 +131,25 @@ export class BlockService {
         await bot.lookAt(placePos, true);
 
         try {
-          await bot.placeBlock(referenceBlock, face.vector.scaled(-1));
+          if (slabType !== undefined) {
+            const stateBot = bot as typeof bot & {
+              _placeBlockWithOptions: (reference: typeof referenceBlock, face: Vec3, options: { half: string; swingArm: string }) => Promise<void>;
+              _genericPlace: (reference: typeof referenceBlock, face: Vec3, options: { delta: Vec3; swingArm: string }) => Promise<void>;
+            };
+            if (typeof stateBot._placeBlockWithOptions !== 'function') throw new BlockPlacementError('State-aware physical placement is unavailable');
+            await stateBot._placeBlockWithOptions(referenceBlock, face.vector.scaled(-1), { half: slabType === 'top' ? 'top' : 'bottom', swingArm: 'right' });
+            if (slabType === 'double') {
+              const half = bot.blockAt(placePos);
+              if (!half || half.getProperties().type !== 'bottom') throw new BlockPlacementError('Cannot merge slab: expected the lower half at the target');
+              await stateBot._genericPlace(half, new Vec3(0, 1, 0), { delta: new Vec3(0.5, 0.5, 0.5), swingArm: 'right' });
+              await bot.waitForTicks(2);
+            }
+            const placed = bot.blockAt(placePos);
+            const properties = placed?.getProperties() ?? {};
+            if (!placed || placed.name !== name?.replace(/^minecraft:/, '') || Object.entries(requestedState ?? {}).some(([key,value]) => String(properties[key]) !== String(value))) {
+              throw new BlockPlacementError(`Physical slab state mismatch at ${x},${y},${z}; expected ${JSON.stringify(requestedState)}`);
+            }
+          } else await bot.placeBlock(referenceBlock, face.vector.scaled(-1));
           return {
             success: true,
             position: { x: placePos.x, y: placePos.y, z: placePos.z },

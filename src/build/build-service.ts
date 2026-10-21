@@ -16,6 +16,7 @@ import { BuildCompletionService } from './verification/build-completion.js';
 import { BuildCheckpoints, planFingerprint, type BuildCheckpoint } from './history/build-checkpoints.js';
 import { placementPlan } from './planner/placement-plan.js';
 import { normalizePlacements } from './planner/normalize-placements.js';
+import { prepareArchitecture } from './planner/architectural-plan.js';
 import { validateDesign, parseDesignRequirements, translateDesign } from './verification/design-validator.js';
 import { RegionPositioner } from '../world/region-positioner.js';
 import { BuildValidationError, positionKey } from './build-types.js';
@@ -75,23 +76,29 @@ export class BuildService {
 
   validateBlueprint(blueprint: InternalBlueprint): BlueprintValidationResult {
     const result=new BlueprintValidator(this.config, this.bot.version).validate(blueprint);
-    try {const design=parseDesignRequirements(blueprint.metadata?.design);validateDesign(blueprint.blocks.map(b=>({position:{x:b.x,y:b.y,z:b.z},block:b.block,state:b.state})),design);} catch(error){result.errors.push(error instanceof Error?error.message:String(error));result.valid=false;}
+    try {
+      const plan = this.planner.plan(blueprint, { x: 0, y: 0, z: 0 }, this.bot.version);
+      this.enforceBlockLimit(plan.blocks.length);
+      result.blocks = plan.blocks.length;
+      result.warnings.push(...plan.adjustments ?? []);
+      validateDesign(plan.blocks, parseDesignRequirements(blueprint.metadata?.design), this.bot.version);
+    } catch(error){result.errors.push(error instanceof Error?error.message:String(error));result.valid=false;}
     return result;
   }
 
   preview(blueprintInput: string | unknown, origin: BlockPosition = { x: 0, y: 0, z: 0 }, mode = this.config.mode): BuildPreview {
     const blueprint = this.parser.parse(blueprintInput);
     const validation = this.validateBlueprint(blueprint);
-    const plan = this.planner.plan(blueprint, origin);
+    const plan = this.planner.plan(blueprint, origin, this.bot.version, validation.valid);
     const perBlockMs = mode === 'physical' ? 450 : mode === 'cinematic' ? 30 : 8;
     return {
       valid: validation.valid,
       name: blueprint.name,
       dimensions: blueprint.size,
-      blocks: blueprint.blocks.length,
+      blocks: plan.blocks.length,
       materials: plan.materials,
       boundingBox: plan.boundingBox,
-      estimatedDurationMs: blueprint.blocks.length * perBlockMs,
+      estimatedDurationMs: plan.blocks.length * perBlockMs,
       warnings: validation.warnings,
       errors: validation.errors
     };
@@ -101,17 +108,26 @@ export class BuildService {
     const blueprint = this.parser.parse(blueprintInput);
     const validation = this.validateBlueprint(blueprint);
     if (!validation.valid) throw new Error(`Blueprint validation failed: ${validation.errors.join('; ')}`);
-    const plan = this.planner.plan(blueprint, origin);
+    const plan = this.planner.plan(blueprint, origin, this.bot.version);
     const design=parseDesignRequirements(blueprint.metadata?.design);
-    return this.executePlan(plan, mode, {...options,design:options.design ?? translateDesign(design,origin)});
+    const finalDesign = options.design ?? translateDesign(design,origin);
+    validateDesign(plan.blocks, finalDesign, this.bot.version);
+    if (options.expectedBlocks !== undefined && options.expectedBlocks !== plan.blocks.length) {
+      throw new BuildValidationError('PLAN_COUNT_MISMATCH','Declared block count differs from corrected final plan; use build.preview count');
+    }
+    return this.executePlan(plan, mode, {...options,design:finalDesign});
   }
 
   async executePlacements(name:string,placements:BlockPlacement[],mode=this.config.mode,options:BuildExecutionOptions={}):Promise<StructuredBuildResult>{
     this.enforceBlockLimit(placements.length);
-    const final=normalizePlacements(placements);
+    const prepared = prepareArchitecture(placements, this.bot.version, options.design?.requiredAir);
+    const final = prepared.placements;
+    this.enforceBlockLimit(final.length);
     if(options.expectedBlocks!==undefined && options.expectedBlocks!==final.length)throw new BuildValidationError('PLAN_COUNT_MISMATCH','Declared '+options.expectedBlocks+' blocks but final plan contains '+final.length+' unique positions');
-    validateDesign(final,options.design);
-    return this.executePlan(placementPlan(name,final),mode,options);
+    validateDesign(final,options.design,this.bot.version);
+    const plan=placementPlan(name,final);
+    if (prepared.adjustments.length) plan.adjustments = prepared.adjustments;
+    return this.executePlan(plan,mode,options);
   }
 
   async fillRegion(bounds: RegionBounds, block: string, mode = this.config.mode): Promise<StructuredBuildResult> {
@@ -226,7 +242,7 @@ export class BuildService {
     this.enforceBlockLimit(plan.blocks.length);
     if(mode!=='physical' && (!this.config.fastModeEnabled||this.bot.game?.gameMode!=='creative'))throw new BuildValidationError('FAST_MODE_UNAVAILABLE','Fast construction requires explicitly enabled fast mode and creative gamemode');
     if(options.expectedBlocks!==undefined && plan.blocks.length!==options.expectedBlocks)throw new BuildValidationError('PLAN_COUNT_MISMATCH','Declared block count differs from unique final plan');
-    validateDesign(plan.blocks,options.design);
+    validateDesign(plan.blocks,options.design,this.bot.version);
     if(options.design?.requiredAir){
       const {from,to}=plan.boundingBox;
       if(options.design.requiredAir.some(p=>p.x<from.x||p.x>to.x||p.y<from.y||p.y>to.y||p.z<from.z||p.z>to.z))throw new BuildValidationError('DESIGN_OUTSIDE_BOUNDS','Required interior air must be inside the inspected construction volume');

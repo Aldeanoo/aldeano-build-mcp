@@ -2,6 +2,7 @@ import type { BlockPlacement, DesignRequirements } from '../build-types.js';
 import { BuildValidationError, positionKey } from '../build-types.js';
 import { normalizePlacements } from '../planner/normalize-placements.js';
 import { z } from 'zod';
+import { blocksTouch } from './block-geometry.js';
 
 const position=z.object({x:z.number().int(),y:z.number().int(),z:z.number().int()});
 export const designRequirementsSchema=z.object({roofBounds:z.object({from:position,to:position}).optional(),roofBaseY:z.number().int().optional(),requiredSupports:z.array(position).optional(),requiredAir:z.array(position).optional(),requireConnected:z.boolean().optional()});
@@ -15,7 +16,7 @@ export function translateDesign(requirements:DesignRequirements|undefined,origin
 const air = new Set(['air', 'cave_air', 'void_air']);
 
 /** Explicit architectural contracts; arbitrary sculptures need not be closed buildings. */
-export function validateDesign(placements: BlockPlacement[], requirements: DesignRequirements = {}): void {
+export function validateDesign(placements: BlockPlacement[], requirements: DesignRequirements = {}, version = '1.20.4'): void {
   requirements=designRequirementsSchema.parse(requirements);
   const solid = new Map(normalizePlacements(placements).filter(p => !air.has(p.block)).map(p => [positionKey(p.position), p]));
   for (const position of requirements.requiredSupports ?? []) if (!solid.has(positionKey(position))) {
@@ -42,7 +43,7 @@ export function validateDesign(placements: BlockPlacement[], requirements: Desig
       seen.add(key);
       for (const [x, y, z] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]) {
         const q = { x: p.x+x, y: p.y+y, z: p.z+z }, k = positionKey(q);
-        if (solid.has(k) && !seen.has(k)) queue.push(q);
+        if (solid.has(k) && !seen.has(k) && blocksTouch(solid.get(key)!, solid.get(k)!, version)) queue.push(q);
       }
     }
     if (seen.size !== solid.size) throw new BuildValidationError('DESIGN_DISCONNECTED', `${solid.size-seen.size} blocks are disconnected from the structure`);

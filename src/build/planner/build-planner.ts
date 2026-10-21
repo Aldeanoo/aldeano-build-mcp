@@ -4,11 +4,23 @@ import { normalizeBounds, positionKey } from '../build-types.js';
 import { compareBlockOrder, inferCategory } from './block-order.js';
 import { DependencyResolver } from './dependency-resolver.js';
 import { normalizePlacement } from './normalize-placements.js';
+import { prepareArchitecture } from './architectural-plan.js';
+import { parseDesignRequirements } from '../verification/design-validator.js';
 
 export class BuildPlanner {
   constructor(private readonly resolver = new DependencyResolver()) {}
 
-  plan(blueprint: InternalBlueprint, origin: BlockPosition): BuildPlan {
+  plan(blueprint: InternalBlueprint, origin: BlockPosition, version = '1.20.4', prepare = true): BuildPlan {
+    let adjustments: string[] = [];
+    if (prepare) {
+      const originals = new Map(blueprint.blocks.map(block => [positionKey(block), block]));
+      const prepared = prepareArchitecture(blueprint.blocks.map(block => ({ position: { x: block.x, y: block.y, z: block.z },
+        block: block.block, state: block.state, category: block.category, section: block.section })), version,
+      parseDesignRequirements(blueprint.metadata?.design)?.requiredAir);
+      adjustments = prepared.adjustments;
+      blueprint = { ...blueprint, blocks: prepared.placements.map(cell => ({ ...originals.get(positionKey(cell.position)),
+        ...cell.position, block: cell.block, state: cell.state, category: cell.category, section: cell.section })) };
+    }
     const minimumY = origin.y + blueprint.blocks.reduce((min,block)=>Math.min(min,block.y),0);
     const relativeIndex = new Map(blueprint.blocks.map((block, index) => [positionKey(block), index]));
     const initial: PlannedBlock[] = blueprint.blocks.map((block, index) => ({
@@ -39,6 +51,7 @@ export class BuildPlanner {
         const section = sections[sections.length - 1]; section.endIndex = index; section.blocks += 1;
       }
     }
-    return { name: blueprint.name, origin, blocks, sections, boundingBox: normalizeBounds(from, to), materials };
+    return { name: blueprint.name, origin, blocks, sections, boundingBox: normalizeBounds(from, to), materials,
+      ...(adjustments.length ? { adjustments } : {}) };
   }
 }

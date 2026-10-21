@@ -41,3 +41,7 @@ Large tools return JSON with stable counters rather than prose. Example:
 ```
 
 Agents should spend their context on reference research, proportions, composition, materials and Minecraft usability. Deterministic primitives and blueprints keep thousands of low-level block operations inside one high-level tool call.
+
+## Roof-wall and slab geometry
+
+`build.roof` accepts optional `wallTopY` (existing wall crown Y) and `wallBlock` (solid closure material) to close the band below its roof without filling rooms or extending walls into overhangs. Blueprint categories `wall` and `roof` enable the same-column junction preparation. Structural slabs resolve `top`, `bottom` or `double` from real surface contact; decorative slabs retain their requested half. Use the corrected count from `build.preview` for `build.blueprint.v2.expectedBlocks`. See [migration and limitations](BUILD_RELIABILITY.md#migraci?n-de-preparaci?n-arquitect?nica).
