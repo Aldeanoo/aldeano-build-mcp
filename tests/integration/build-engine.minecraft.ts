@@ -11,6 +11,10 @@ import { BoundedTeleportService } from '../../src/services/bounded-teleport-serv
 import { BuildCompletionService } from '../../src/build/verification/build-completion.js';
 import { operationsPlan } from '../../src/build/executor/parallel-fast-executor.js';
 import { FastCommandBatch } from '../../src/build/executor/fast-command-batch.js';
+import { BlockService } from '../../src/services/block-service.js';
+import { PhysicalBuildStrategy } from '../../src/build/executor/execution-strategy.js';
+import type { BlockPlacement } from '../../src/build/build-types.js';
+import { Vec3 } from 'vec3';
 
 const { pathfinder } = pathfinderPkg;
 const enabled = process.env.RUN_MINECRAFT_TESTS === 'true';
@@ -18,6 +22,60 @@ const enabled = process.env.RUN_MINECRAFT_TESTS === 'true';
 if (!enabled) {
   test('Build engine live integration (SKIPPED)', (t) => t.pass('Set RUN_MINECRAFT_TESTS=true to run against a creative server.'));
 } else {
+  test.serial('independent wall-roof band and all slab halves agree with real Minecraft geometry', async t => {
+    t.timeout(120_000);
+    const bot=mineflayer.createBot({host:process.env.MC_HOST??'127.0.0.1',port:Number(process.env.MC_PORT??9999),username:'BenchmarkBot',plugins:{pathfinder}});
+    let cleanup:{from:Vec3;to:Vec3}|undefined;
+    try {
+      await new Promise<void>((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Geometry integration spawn timed out')),15000);bot.once('spawn',()=>{clearTimeout(timer);resolve();});bot.once('error',reject);});
+      await bot.waitForChunksToLoad();
+      bot.chat(`/tp @s ~ ~ ~${4000 + Math.floor(Math.random() * 20000)}`);
+      await bot.waitForTicks(10);await bot.waitForChunksToLoad();
+      for(let tick=0;tick<200&&!bot.entity.onGround;tick++)await bot.waitForTicks(1);
+      const base=bot.entity.position.floored().offset(15,16,15);
+      cleanup={from:base,to:base.offset(36,15,12)};
+      const service=new BuildService(bot,{mode:'fast',fastModeEnabled:true,checkpointDirectory:false,concurrency:1});
+      const room:BlockPlacement[]=[];
+      for(let x=0;x<=8;x++)for(let z=0;z<=6;z++)if(x===0||x===8||z===0||z===6){
+        for(let y=0;y<=3;y++)room.push({position:base.offset(x,y,z),block:'bricks',category:'wall'});
+      }
+      room.push(...buildRoofDetailed(base.offset(0,6,0),base.offset(8,6,6),'oak_stairs',{wallTopY:base.y+3,wallBlock:'bricks',overhang:1}));
+      cleanup.from=base.offset(-1,0,-1);
+      const built=await service.executePlacements('independent-roof-wall-junction',room,'fast',{verifyAfterBuild:true});
+      t.true(built.success);
+      for(let y=4;y<6;y++)t.is(bot.blockAt(base.offset(0,y,3))?.name,'bricks');
+      t.is(bot.blockAt(base.offset(4,4,3))?.name,'air');
+      const samples:BlockPlacement[]=[
+        {position:base.offset(14,0,0),block:'oak_slab'},{position:base.offset(14,1,0),block:'stone'},
+        {position:base.offset(18,0,0),block:'stone'},{position:base.offset(18,1,0),block:'oak_slab'},
+        {position:base.offset(22,0,0),block:'stone'},{position:base.offset(22,1,0),block:'oak_slab'},{position:base.offset(22,2,0),block:'stone'}
+      ];
+      const slabs=await service.executePlacements('independent-slab-supports',samples,'fast',{verifyAfterBuild:true});
+      t.true(slabs.success);
+      t.is(bot.blockAt(base.offset(14,0,0))?.getProperties().type,'top');
+      t.is(bot.blockAt(base.offset(18,1,0))?.getProperties().type,'bottom');
+      t.is(bot.blockAt(base.offset(22,1,0))?.getProperties().type,'double');
+      // Exercise actual clicks, rather than assuming /setblock proves survival-style placement.
+      const batch=new FastCommandBatch(bot,0,3);
+      await batch.execute([
+        {type:'setblock',position:base.offset(26,2,0),block:'stone'},
+        {type:'setblock',position:base.offset(30,0,0),block:'stone'},
+        {type:'setblock',position:base.offset(34,0,0),block:'stone'}
+      ]);
+      await new BoundedTeleportService(bot).selfTo(base.offset(29,3,-3));
+      bot.chat('/give @s minecraft:oak_slab 16');await bot.waitForTicks(4);
+      const physical=new PhysicalBuildStrategy(new BlockService(bot));
+      for(const [x,type] of [[26,'top'],[30,'bottom'],[34,'double']] as const){
+        // Keep every actual click inside normal interaction reach, independently of prior samples.
+        await new BoundedTeleportService(bot).selfTo(base.offset(x,1,-2));
+        await physical.place({position:base.offset(x,1,0),block:'oak_slab',state:{type,waterlogged:false}});
+        t.is(bot.blockAt(base.offset(x,1,0))?.getProperties().type,type);
+      }
+    } finally {
+      if(cleanup)try{await new FastCommandBatch(bot,0,1).execute([{type:'fill',...cleanup,block:'air'}]);await bot.waitForTicks(2);}catch{/* isolated test world only */}
+      bot.quit();
+    }
+  });
   test.serial('build -> verify fault -> repair diff -> verify 100%', async (t) => {
     t.timeout(60_000);
     const host = process.env.MC_HOST ?? '127.0.0.1';

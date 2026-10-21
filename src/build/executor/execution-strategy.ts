@@ -3,6 +3,8 @@ import type { BlockService } from '../../services/block-service.js';
 import type { BotOrGetter } from '../../services/types.js';
 import { resolveBot } from '../../services/service-utils.js';
 import type { BlockPlacement, BuildMode } from '../build-types.js';
+import { normalizePlacement } from '../planner/normalize-placements.js';
+import { BuildValidationError } from '../build-types.js';
 
 export interface BuildExecutionStrategy {
   readonly mode: BuildMode;
@@ -25,17 +27,22 @@ export class PhysicalBuildStrategy implements BuildExecutionStrategy {
   constructor(private readonly blocks: BlockService) {}
 
   async place(placement: BlockPlacement): Promise<void> {
+    placement = normalizePlacement(placement);
     if (placement.block === 'air') {
       try { await this.blocks.digBlock(placement.position.x, placement.position.y, placement.position.z); } catch { /* already air */ }
       return;
     }
     const existing = this.blocks.getBlockInfo(placement.position.x, placement.position.y, placement.position.z);
     const expectedName = placement.block.replace(/^minecraft:/, '').split('[')[0];
-    if (existing?.name === expectedName) return;
+    const properties = existing?.block?.getProperties?.() ?? {};
+    if (existing?.name === expectedName && Object.entries(placement.state ?? {}).every(([key, value]) => String(properties[key]) === String(value))) return;
+    if (placement.state && (!expectedName.endsWith('_slab') || Object.keys(placement.state).some(key => !['type', 'waterlogged'].includes(key)) || placement.state.waterlogged === true || placement.state.waterlogged === 'true')) {
+      throw new BuildValidationError('PHYSICAL_STATE_UNSUPPORTED', 'Physical placement cannot guarantee these states; use fast mode or a supported dry slab state');
+    }
     if (existing && !['air', 'cave_air', 'void_air'].includes(existing.name)) {
       await this.blocks.digBlock(placement.position.x, placement.position.y, placement.position.z);
     }
-    await this.blocks.placeBlock(placement.block, placement.position.x, placement.position.y, placement.position.z);
+    await this.blocks.placeBlock(placement.block, placement.position.x, placement.position.y, placement.position.z, undefined, placement.state);
   }
 }
 

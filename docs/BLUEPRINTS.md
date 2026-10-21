@@ -16,6 +16,8 @@ Blueprints use relative integer coordinates. The executor adds an explicit origi
 
 Optional block fields are `state`, `category`, `section`, and `dependsOn`. Categories are ordered as foundation, structural, wall, floor, roof, then decoration.
 
+Building `wall` and `roof` categories also declare their junction: planning closes missing bands in the same column. Structural slabs resolve `type` to `top`, `bottom` or `double` for surface contact; `decoration` preserves an intentional half. Preview reports adjustments and the final count. See [migration and limits](BUILD_RELIABILITY.md#migraci?n-de-preparaci?n-arquitect?nica).
+
 `BlueprintValidator` checks the schema, dimensions, configured limits, duplicates, coordinates, Minecraft block names and declared dependencies before execution.
 
 `BlueprintTransformer` supports `translate`, `rotate90`, `rotate180`, `rotate270`, `mirrorX`, and `mirrorZ`. In the explicit `state` object, rotations and mirrors update cardinal `facing`; odd quarter-turns swap horizontal `axis` (`x`/`z`), preserving `y`; mirrors swap stair `shape` handedness (`inner_left`/`inner_right`, `outer_left`/`outer_right`). Straight stairs and other properties are preserved, and source blueprints are not mutated.
